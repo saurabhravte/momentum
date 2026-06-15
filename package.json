@@ -1,14 +1,25 @@
 {
   "name": "momentum",
+  "private": true,
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:push": "pnpm --filter @momentum/server db:push",
+    "db:migrate:corsair": "pnpm --filter @momentum/server db:migrate:corsair",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "perf": "pnpm --filter @momentum/server perf",
+    "dev:server": "pnpm --filter @momentum/server dev",
+    "dev:client": "pnpm --filter @momentum/client dev"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "engines": {
+    "node": ">=20"
+  },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
@@ -16,7 +27,6 @@
       "onFail": "download"
     }
   },
-  "type": "module",
   "devDependencies": {
     "prettier": "^3.8.4",
     "typescript": "^6.0.3"

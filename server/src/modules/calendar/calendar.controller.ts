@@ -4,7 +4,7 @@ import { env } from "../../common/config/env";
 import { AvailabilityQuery, EventsRangeQuery } from "./dto/calendar.dto";
 import { sendResponse } from "../../common/utils/apiResponse";
 import { asyncHandler } from "../../common/utils/asyncHandler";
-import * as calSvc from "./calendar.service.js";
+import * as calSvc from "./calendar.service";
 import * as emailSvc from "../inbox/inbox.service";
 import { schedulePreMeetingBriefs } from "../../common/jobs/workers";
 import { fenceUntrusted, jsonCompletion } from "../../common/services/ai/llm";
