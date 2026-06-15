@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/Toast";
 import { QueryProvider } from "@/lib/query-provider";
 import "./globals.css";
 
-const poppins = Poppins({
+const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-poppins",
+  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning className={poppins.variable}>
+      <html lang="en" suppressHydrationWarning className={jetBrainsMono.variable}>
         <body className="font-sans antialiased">
           <ThemeProvider>
             <QueryProvider>
