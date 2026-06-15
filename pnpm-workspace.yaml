@@ -2,3 +2,6 @@ packages:
   - "client"
   - "server"
   - "packages/*"
+allowBuilds:
+  argon2: false
+  esbuild: false
