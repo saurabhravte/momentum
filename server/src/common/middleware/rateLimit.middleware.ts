@@ -1,8 +1,8 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import type { Request } from "express";
 
 /** Per-user when authenticated, per-IP otherwise. */
-const keyOf = (req: Request) => req.user?.id ?? req.ip ?? "anon";
+const keyOf = (req: Request) => req.user?.id ?? ipKeyGenerator(req) ?? "anon";
 
 export const apiLimiter = rateLimit({
   windowMs: 60_000,
@@ -21,7 +21,7 @@ export const apiLimiter = rateLimit({
 export const authLimiter = rateLimit({
   windowMs: 15 * 60_000,
   limit: 10,
-  keyGenerator: (req) => req.ip ?? "anon",
+  keyGenerator: (req) => ipKeyGenerator(req) ?? "anon",
   message: {
     success: false,
     statusCode: 429,
