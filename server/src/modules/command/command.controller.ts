@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { reqParam } from "../../common/utils/reqParam";
 import { desc, eq } from "drizzle-orm";
 import { db, schema } from "../../common/config/db";
 import { Decision } from "./dto/command.dto";
@@ -25,7 +26,7 @@ export const listActions = asyncHandler(async (req: Request, res: Response) => {
 /** Approval gate — the ONLY route that lets a proposal touch the outside world. */
 export const decide = asyncHandler(async (req: Request, res: Response) => {
   const decision = Decision.parse(req.params.decision);
-  const result = await resolveProposal(req.user!.id, req.params.id, decision === "approve");
+  const result = await resolveProposal(req.user!.id, reqParam(req, "id"), decision === "approve");
   if (!result) throw ApiError.notFound("Proposal not found or already resolved");
   sendResponse(res, 200, result);
 });

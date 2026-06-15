@@ -17,17 +17,10 @@
     "types": ["node"],
 
     "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
 
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "forceConsistentCasingInFileNames": true,
-
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-
-    "incremental": true
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

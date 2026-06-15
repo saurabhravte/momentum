@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { reqParam } from "../../common/utils/reqParam";
 import { nanoid } from "nanoid";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { db, schema } from "../../common/config/db";
@@ -49,7 +50,7 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
   const updated = await db
     .update(schema.tasks)
     .set(patch)
-    .where(and(eq(schema.tasks.id, req.params.id), eq(schema.tasks.userId, req.user!.id)))
+    .where(and(eq(schema.tasks.id, reqParam(req, "id")), eq(schema.tasks.userId, req.user!.id)))
     .returning();
   if (!updated.length) throw ApiError.notFound("Task not found");
   sendResponse(res, 200, updated[0]);

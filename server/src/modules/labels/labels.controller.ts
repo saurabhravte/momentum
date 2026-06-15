@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { reqParam } from "../../common/utils/reqParam";
 import { nanoid } from "nanoid";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "../../common/config/db";
@@ -38,8 +39,8 @@ export const createLabel = asyncHandler(async (req: Request, res: Response) => {
 export const deleteLabel = asyncHandler(async (req: Request, res: Response) => {
   const deleted = await db
     .delete(schema.labels)
-    .where(and(eq(schema.labels.id, req.params.id), eq(schema.labels.userId, req.user!.id)))
+    .where(and(eq(schema.labels.id, reqParam(req, "id")), eq(schema.labels.userId, req.user!.id)))
     .returning({ id: schema.labels.id });
   if (!deleted.length) throw ApiError.notFound("Label not found");
-  sendResponse(res, 200, { deleted: req.params.id });
+  sendResponse(res, 200, { deleted: reqParam(req, "id") });
 });

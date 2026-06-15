@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { reqParam } from "../../common/utils/reqParam";
 import { nanoid } from "nanoid";
 import { db, schema } from "../../common/config/db";
 import { sendResponse } from "../../common/utils/apiResponse";
@@ -13,7 +14,7 @@ export const slackUnread = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const slackCatchUp = asyncHandler(async (req: Request, res: Response) => {
-  sendResponse(res, 200, await slackSvc.summarizeChannel(req.user!.id, req.params.channelId));
+  sendResponse(res, 200, await slackSvc.summarizeChannel(req.user!.id, reqParam(req, "channelId")));
 });
 
 /** Slack message → action item. */

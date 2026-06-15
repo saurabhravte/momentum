@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { reqParam } from "../../common/utils/reqParam";
 import { nanoid } from "nanoid";
 import { and, eq } from "drizzle-orm";
 import { InboxListQuery } from "./dto/inbox.dto";
@@ -24,7 +25,7 @@ export const listInbox = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getThread = asyncHandler(async (req: Request, res: Response) => {
-  const thread = await emailSvc.getThreadNormalized(req.user!.id, req.params.threadId);
+  const thread = await emailSvc.getThreadNormalized(req.user!.id, reqParam(req, "threadId"));
   // Email → Calendar chip: detect "can we meet Thursday at 4?"
   const text = thread.messages
     .map((m) => m.text || m.snippet)
@@ -87,7 +88,7 @@ export const followUp = asyncHandler(async (req: Request, res: Response) => {
   const rows = await db
     .select()
     .from(schema.emailMeta)
-    .where(and(eq(schema.emailMeta.userId, req.user!.id), eq(schema.emailMeta.threadId, req.params.threadId)))
+    .where(and(eq(schema.emailMeta.userId, req.user!.id), eq(schema.emailMeta.threadId, reqParam(req, "threadId"))))
     .limit(1);
   if (!rows[0]) throw ApiError.notFound("Thread not tracked");
   const days = rows[0].awaitingReplySince
@@ -126,7 +127,7 @@ export const undoSend = asyncHandler(async (req: Request, res: Response) => {
 /** Task extraction from a thread → unified board. */
 export const extractTasksFromThread = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.id;
-  const thread = await emailSvc.getThreadNormalized(userId, req.params.threadId);
+  const thread = await emailSvc.getThreadNormalized(userId, reqParam(req, "threadId"));
   const corpus = [thread.subject, ...thread.messages.map((m) => m.text || m.snippet)].join("\n---\n").slice(0, 6000);
   const { tasks } = await extractTasks("email", corpus, !!env.ANTHROPIC_API_KEY);
   const inserted = [];
@@ -137,7 +138,7 @@ export const extractTasksFromThread = asyncHandler(async (req: Request, res: Res
       userId,
       title: t.title,
       source: "email",
-      sourceRef: req.params.threadId,
+      sourceRef: reqParam(req, "threadId"),
       due: t.due ? new Date(t.due) : null,
     });
     inserted.push({ id, ...t });
