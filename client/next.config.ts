@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactStrictMode: true,
-  // Proxy API calls to the Express backend (server/ runs on :4000)
+  experimental: {
+    turbo: {
+      rules: {},
+    },
+  },
   async rewrites() {
     return [
       {
