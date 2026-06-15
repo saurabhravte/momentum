@@ -44,8 +44,8 @@ const TOOL_META: Record<
 function CenterNode() {
   return (
     <div className="relative grid h-28 w-28 place-items-center rounded-3xl border border-line bg-surface shadow-soft-lg">
-      <Handle type="target" position={Position.Left} className="!opacity-0" />
-      <Handle type="source" position={Position.Right} className="!opacity-0" />
+      <Handle type="target" position={Position.Left} className="opacity-0!" />
+      <Handle type="source" position={Position.Right} className="opacity-0!" />
       <div className="grid h-12 w-12 place-items-center rounded-2xl bg-ink text-bg">
         <Sparkles className="h-6 w-6" />
       </div>
@@ -71,8 +71,8 @@ function ToolNode({ data }: NodeProps) {
       )}
       style={connected ? { boxShadow: `0 0 0 1.5px ${meta.color}55, 0 8px 28px -16px ${meta.color}` } : undefined}
     >
-      <Handle type="target" position={Position.Left} className="!opacity-0" />
-      <Handle type="source" position={Position.Right} className="!opacity-0" />
+      <Handle type="target" position={Position.Left} className="opacity-0!" />
+      <Handle type="source" position={Position.Right} className="opacity-0!" />
       <span
         className="grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-colors"
         style={{
@@ -150,7 +150,7 @@ export function FlowShowcase() {
   );
 
   return (
-    <div className="relative h-[420px] w-full overflow-hidden rounded-3xl border border-line bg-bg dot-grid">
+    <div className="relative h-105 w-full overflow-hidden rounded-3xl border border-line bg-bg dot-grid">
       <ReactFlow
         nodes={nodes}
         edges={edges}
