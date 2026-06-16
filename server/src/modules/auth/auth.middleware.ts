@@ -16,6 +16,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     .select({
       userId: schema.sessions.userId,
       email: schema.users.email,
+      emailVerified: schema.users.emailVerified,
       name: schema.users.name,
       timezone: schema.users.timezone,
       settings: schema.users.settings,
@@ -30,6 +31,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   req.user = {
     id: row.userId,
     email: row.email,
+    emailVerified: row.emailVerified,
     name: row.name,
     timezone: row.timezone,
     settings: row.settings as Record<string, unknown>,

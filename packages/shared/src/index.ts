@@ -191,6 +191,7 @@ export const LoginRequest = z.object({
 export const MeDto = z.object({
   id: z.string(),
   email: z.string(),
+  emailVerified: z.boolean(),
   name: z.string(),
   timezone: z.string(),
   settings: z.object({

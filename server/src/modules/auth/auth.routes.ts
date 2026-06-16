@@ -17,3 +17,5 @@ authRouter.get("/google/callback", authController.googleCallback);
 
 authRouter.post("/logout", requireAuth, authController.logout);
 authRouter.get("/me", requireAuth, authController.me);
+authRouter.post("/verify/resend", requireAuth, authController.resendVerification);
+authRouter.get("/verify", authController.verifyEmail);

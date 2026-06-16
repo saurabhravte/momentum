@@ -132,5 +132,47 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
 export const me = asyncHandler(async (req: Request, res: Response) => {
   const u = req.user!;
-  sendResponse(res, 200, { id: u.id, email: u.email, name: u.name, timezone: u.timezone, settings: u.settings });
+  sendResponse(res, 200, {
+    id: u.id,
+    email: u.email,
+    emailVerified: u.emailVerified,
+    name: u.name,
+    timezone: u.timezone,
+    settings: u.settings,
+  });
+});
+
+// Email Verification
+export const resendVerification = asyncHandler(async (req: Request, res: Response) => {
+  const u = req.user!;
+  if (u.emailVerified) return sendResponse(res, 200, { alreadyVerified: true }, "Email already verified");
+
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + 24 * 3_600_000);
+  await db.insert(schema.verificationTokens).values({ token, userId: u.id, expiresAt });
+
+  const verifyUrl = `${env.API_ORIGIN}/api/auth/verify?token=${token}`;
+  // TODO(email): replace this with your provider (Resend/SES/Postmark/SMTP).
+  // For now the link is logged so the flow is testable without an email service.
+  console.info(`[verify] email=${u.email} link=${verifyUrl}`);
+
+  sendResponse(res, 200, { sent: true }, "Verification email sent");
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const token = String(req.query.token ?? "");
+  if (!token) throw ApiError.badRequest("Missing token");
+
+  const rows = await db
+    .select()
+    .from(schema.verificationTokens)
+    .where(eq(schema.verificationTokens.token, token))
+    .limit(1);
+  const row = rows[0];
+  if (!row || row.expiresAt < new Date()) throw ApiError.badRequest("Invalid or expired token");
+
+  await db.update(schema.users).set({ emailVerified: true }).where(eq(schema.users.id, row.userId));
+  await db.delete(schema.verificationTokens).where(eq(schema.verificationTokens.token, token));
+
+  sendResponse(res, 200, { verified: true }, "Email verified");
 });

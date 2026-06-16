@@ -57,6 +57,7 @@ export const api = {
   register: (d: { email: string; password: string; name: string }) => post<MeDto>("/auth/register", d),
   login: (d: { email: string; password: string }) => post<MeDto>("/auth/login", d),
   logout: () => post<null>("/auth/logout"),
+  resendVerification: () => post<{ sent?: boolean; alreadyVerified?: boolean }>("/auth/verify/resend"),
   googleLoginUrl: () => `${BASE}/api/auth/google`,
 
   // connections (consent-first)
