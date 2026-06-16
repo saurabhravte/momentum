@@ -21,9 +21,9 @@ function GithubIcon({ className }: { className?: string }) {
 }
 
 const SOCIALS = [
-  { label: "Email", href: "mailto:you@example.com", Icon: Mail },
+  { label: "Email", href: "mailto:saurabh.ravte@gmail.com", Icon: Mail },
   { label: "GitHub", href: "https://github.com/saurabhravte", Icon: GithubIcon },
-  { label: "Twitter", href: "https://twitter.com/yourhandle", Icon: XIcon },
+  { label: "Twitter", href: "https://x.com/iamsaurabhr", Icon: XIcon },
 ];
 
 export function Footer() {
@@ -31,6 +31,9 @@ export function Footer() {
   return (
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-10 sm:flex-row sm:justify-between">
+        <span className="order-last text-xs font-medium text-faint sm:absolute sm:bottom-3 sm:left-6 sm:order-first">
+          Momentum v1.0
+        </span>
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-ink text-bg">
             <Logo className="h-4 w-auto" />
