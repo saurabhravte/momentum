@@ -11,6 +11,8 @@ import { useToast } from "@/components/Toast";
 import { PROVIDER_META } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
 /**
  * Slack + GitHub authenticate with a token (Corsair stores it encrypted with
  * the KEK envelope). Gmail + Calendar use OAuth — Corsair builds the consent
@@ -60,47 +62,53 @@ function KeyModal({ provider, onClose, onDone }: { provider: string; onClose: ()
   });
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/70 p-6 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <form className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <h2 className="font-display text-lg font-bold">Connect {PROVIDER_META[provider].name}</h2>
-        <p className="mt-2 text-sm text-muted">{meta.hint}</p>
-        <a
-          href={meta.docs}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1 inline-flex items-center gap-1 text-xs text-accent hover:underline"
-        >
-          Where do I get this? <ExternalLink className="h-3 w-3" />
-        </a>
-        <label className="mt-4 block text-xs text-muted">{meta.label}</label>
-        <input
-          className="input mt-1"
-          type="password"
-          autoComplete="off"
-          placeholder={meta.placeholder}
-          {...register("apiKey", {
-            required: "Token is required",
-            minLength: { value: 8, message: "That token looks too short" },
-            maxLength: { value: 512, message: "That token looks too long" },
-          })}
-        />
-        {errors.apiKey && <p className="mt-1 text-xs text-urgent">{errors.apiKey.message}</p>}
-        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-faint">
-          <Lock className="h-3 w-3" /> Encrypted at rest with the Corsair KEK envelope. Never logged.
-        </p>
-        <div className="mt-4 flex justify-end gap-2">
-          <button type="button" className="btn-ghost py-1.5! text-xs" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="btn-primary py-1.5! text-xs" disabled={isSubmitting}>
-            {isSubmitting ? "Storing…" : "Connect"}
-          </button>
-        </div>
-      </form>
-    </div>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Connect {PROVIDER_META[provider].name}</DialogTitle>
+        </DialogHeader>
+
+        {/* form is no longer the overlay — it's the body. onSubmit stays. */}
+        <form onSubmit={submit}>
+          <p className="text-sm text-muted">{meta.hint}</p>
+          <a
+            href={meta.docs}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-xs text-accent hover:underline"
+          >
+            Where do I get this? <ExternalLink className="h-3 w-3" />
+          </a>
+
+          <label className="mt-4 block text-xs text-muted">{meta.label}</label>
+          <input
+            className="input mt-1"
+            type="password"
+            autoComplete="off"
+            placeholder={meta.placeholder}
+            {...register("apiKey", {
+              required: "Token is required",
+              minLength: { value: 8, message: "That token looks too short" },
+              maxLength: { value: 512, message: "That token looks too long" },
+            })}
+          />
+          {errors.apiKey && <p className="mt-1 text-xs text-urgent">{errors.apiKey.message}</p>}
+
+          <p className="mt-2 flex items-center gap-1.5 text-[11px] text-faint">
+            <Lock className="h-3 w-3" /> Encrypted at rest with the Corsair KEK envelope. Never logged.
+          </p>
+
+          <DialogFooter className="mt-4">
+            <button type="button" className="btn-ghost !py-1.5 text-xs" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary !py-1.5 text-xs" disabled={isSubmitting}>
+              {isSubmitting ? "Storing…" : "Connect"}
+            </button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

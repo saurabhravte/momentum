@@ -11,6 +11,8 @@ import { useFocusMode } from "@/lib/store";
 import { timeAgo } from "@/lib/format";
 import { Segmented } from "@/components/ui/segmented";
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
 const WINDOWS = [
   { label: "3 hours", hours: 3 },
   { label: "Today", hours: 12 },
@@ -173,32 +175,31 @@ export default function CatchUpPage() {
       )}
 
       {/* Draft reply modal — draft-first, you approve the send */}
-      {draft && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/70 p-6 backdrop-blur-sm"
-          onClick={() => setDraft(null)}
-        >
-          <div className="card w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-display font-semibold">AI draft — re: {draft.item.title}</h2>
-            <textarea
-              className="input mt-3 h-44 resize-none font-body"
-              value={draft.text}
-              onChange={(e) => setDraft({ ...draft, text: e.target.value })}
-            />
-            <div className="mt-3 flex justify-between">
-              <span className="self-center text-[11px] text-ink-400">30s undo window after send</span>
-              <div className="flex gap-2">
-                <button className="btn-ghost" onClick={() => setDraft(null)}>
-                  Discard
-                </button>
-                <button className="btn-primary" onClick={sendDraft}>
-                  Send with undo
-                </button>
-              </div>
+      <Dialog open={!!draft} onOpenChange={(o) => !o && setDraft(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>AI draft — re: {draft?.item.title}</DialogTitle>
+          </DialogHeader>
+
+          <textarea
+            className="input h-44 resize-none font-body"
+            value={draft?.text ?? ""}
+            onChange={(e) => draft && setDraft({ ...draft, text: e.target.value })}
+          />
+
+          <DialogFooter className="items-center justify-between sm:justify-between">
+            <span className="text-[11px] text-faint">30s undo window after send</span>
+            <div className="flex gap-2">
+              <button className="btn-ghost" onClick={() => setDraft(null)}>
+                Discard
+              </button>
+              <button className="btn-primary" onClick={sendDraft}>
+                Send with undo
+              </button>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
