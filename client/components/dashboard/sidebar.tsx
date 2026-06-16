@@ -18,6 +18,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { ConnectHelp } from "@/components/dashboard/connect-help";
 import { useUiStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -100,6 +101,10 @@ function SidebarBody({
           )}
         </Link>
       </nav>
+
+      <div className="mt-3 border-t border-line pt-3">
+        <ConnectHelp collapsed={collapsed} />
+      </div>
 
       <div className="mt-3 space-y-1 border-t border-line pt-3">
         <Link
