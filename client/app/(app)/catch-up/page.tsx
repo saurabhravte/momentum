@@ -9,6 +9,7 @@ import { useToast } from "@/components/Toast";
 import { UrgencyDot } from "@/components/UrgencyDot";
 import { useFocusMode } from "@/lib/store";
 import { timeAgo } from "@/lib/format";
+import { Segmented } from "@/components/ui/segmented";
 
 const WINDOWS = [
   { label: "3 hours", hours: 3 },
@@ -27,6 +28,7 @@ const KIND_ICON: Record<CatchUpItem["kind"], string> = {
 
 export default function CatchUpPage() {
   const [hours, setHours] = useState(12);
+  const [view, setView] = useState<"summary" | "all">("summary");
   const focus = useFocusMode();
   const { data, loading, reload } = useAsync(() => api.catchUp(hours), [hours]);
   const toast = useToast();
@@ -96,6 +98,17 @@ export default function CatchUpPage() {
         </div>
       </header>
 
+      <div className="mt-4 flex justify-center">
+        <Segmented
+          value={view}
+          onChange={setView}
+          options={[
+            { value: "summary", label: "Summary" },
+            { value: "all", label: `All items (${items.length})` },
+          ]}
+        />
+      </div>
+
       {loading ? (
         <p className="mt-10 text-center text-sm text-ink-400 animate-pulse-soft">scanning your workspace…</p>
       ) : (
@@ -110,50 +123,52 @@ export default function CatchUpPage() {
             </div>
           </div>
 
-          <ul className="mt-5 space-y-2.5">
-            {items.map((i) => (
-              <li key={i.id} className="card p-4 animate-rise">
-                <div className="flex items-start gap-3">
-                  <UrgencyDot urgency={i.urgency} />
-                  <span className="text-base leading-none">{KIND_ICON[i.kind]}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="truncate text-sm font-medium text-ink-100">{i.title}</p>
-                      <span className="shrink-0 font-mono text-[11px] text-ink-400">{timeAgo(i.occurredAt)}</span>
-                    </div>
-                    <p className="mt-1 text-sm text-ink-300">{i.summary}</p>
-                    <div className="mt-2.5 flex flex-wrap gap-2">
-                      {i.actions.map((a) => (
-                        <button
-                          key={a}
-                          onClick={() => quickAction(i, a)}
-                          className="rounded-lg border border-ink-700 px-2.5 py-1 text-xs text-ink-200 hover:border-accent/50 hover:text-accent"
-                        >
-                          {a === "reply"
-                            ? "↩ draft reply"
-                            : a === "snooze"
-                              ? "◷ snooze 3h"
-                              : a === "task"
-                                ? "✓ to task"
-                                : a === "approve_draft"
-                                  ? "✓ approve"
-                                  : "↗ open"}
-                        </button>
-                      ))}
+          {view === "all" && (
+            <ul className="mt-5 space-y-2.5">
+              {items.map((i) => (
+                <li key={i.id} className="card p-4 animate-rise">
+                  <div className="flex items-start gap-3">
+                    <UrgencyDot urgency={i.urgency} />
+                    <span className="text-base leading-none">{KIND_ICON[i.kind]}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="truncate text-sm font-medium text-ink-100">{i.title}</p>
+                        <span className="shrink-0 font-mono text-[11px] text-ink-400">{timeAgo(i.occurredAt)}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-ink-300">{i.summary}</p>
+                      <div className="mt-2.5 flex flex-wrap gap-2">
+                        {i.actions.map((a) => (
+                          <button
+                            key={a}
+                            onClick={() => quickAction(i, a)}
+                            className="rounded-lg border border-ink-700 px-2.5 py-1 text-xs text-ink-200 hover:border-accent/50 hover:text-accent"
+                          >
+                            {a === "reply"
+                              ? "↩ draft reply"
+                              : a === "snooze"
+                                ? "◷ snooze 3h"
+                                : a === "task"
+                                  ? "✓ to task"
+                                  : a === "approve_draft"
+                                    ? "✓ approve"
+                                    : "↗ open"}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </li>
-            ))}
-            {items.length === 0 && (
-              <li className="py-10 text-center text-sm text-ink-400">
-                Nothing needs you from this window.{" "}
-                <Link href="/dashboard" className="text-accent hover:underline">
-                  Back to the dashboard →
-                </Link>
-              </li>
-            )}
-          </ul>
+                </li>
+              ))}
+              {items.length === 0 && (
+                <li className="py-10 text-center text-sm text-ink-400">
+                  Nothing needs you from this window.{" "}
+                  <Link href="/dashboard" className="text-accent hover:underline">
+                    Back to the dashboard →
+                  </Link>
+                </li>
+              )}
+            </ul>
+          )}
         </>
       )}
 
