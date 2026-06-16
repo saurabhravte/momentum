@@ -30,6 +30,7 @@ const KIND_ICON: Record<CatchUpItem["kind"], string> = {
 
 export default function CatchUpPage() {
   const [hours, setHours] = useState(12);
+
   const [view, setView] = useState<"summary" | "all">("summary");
   const focus = useFocusMode();
   const { data, loading, reload } = useAsync(() => api.catchUp(hours), [hours]);
