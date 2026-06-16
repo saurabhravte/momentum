@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Sparkles, ShieldCheck } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/Toast";
 
@@ -140,22 +140,6 @@ export default function LoginPage() {
         <button className="mt-4 w-full text-center text-sm text-muted hover:text-accent" onClick={switchMode}>
           {mode === "login" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
-
-        {/* Path B: Clerk (Google + email/password, managed) */}
-        <div className="mt-6 rounded-xl border border-line bg-surface-2/50 p-4">
-          <p className="flex items-center gap-1.5 text-xs font-medium">
-            <ShieldCheck className="h-3.5 w-3.5 text-accent" /> Prefer managed auth?
-          </p>
-          <p className="mt-1 text-xs text-muted">Use Clerk for hosted sign-in with MFA and social logins.</p>
-          <div className="mt-3 flex gap-2">
-            <Link href="/sign-in" className="btn-ghost flex-1 !py-2 text-xs">
-              Sign in with Clerk
-            </Link>
-            <Link href="/sign-up" className="btn-ghost flex-1 !py-2 text-xs">
-              Create with Clerk
-            </Link>
-          </div>
-        </div>
       </div>
     </main>
   );

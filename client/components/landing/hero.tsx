@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
-import { FlowShowcase } from './flow-showcase';
-import { StatusBadge } from '@/components/ui/badge';
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+import { FlowShowcase } from "./flow-showcase";
+import { StatusBadge } from "@/components/ui/badge";
 
 export function Hero() {
   return (
@@ -33,19 +33,17 @@ export function Hero() {
           </span>
 
           <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-            Work, finally{' '}
-            <span className="text-accent">in one happy place</span>.
+            Work, finally <span className="text-accent">in one happy place</span>.
           </h1>
 
           <p className="mt-5 max-w-md text-pretty text-base leading-relaxed text-muted">
-            Your work is scattered across four tabs that each think they&apos;re the
-            main character. Momentum pulls Gmail, Calendar, Slack and GitHub into one
-            place — where the workflow bends to you.
+            Your work is scattered across four tabs that each think they&apos;re the main character. Momentum pulls
+            Gmail, Calendar, Slack and GitHub into one place — where the workflow bends to you.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href="/sign-up"
+              href="/login"
               className="group inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-bg transition-transform hover:scale-[1.02]"
             >
               Start free
