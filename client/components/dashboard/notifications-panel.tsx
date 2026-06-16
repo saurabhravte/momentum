@@ -9,6 +9,14 @@ import { cn } from "@/lib/utils";
 
 type Note = { id: string; title: string; body: string; time: string; unread?: boolean };
 
+const KIND_LABEL: Record<string, string> = {
+  send_email: "Email awaiting approval",
+  create_event: "Event awaiting approval",
+  update_event: "Event change awaiting approval",
+  slack_post: "Slack post awaiting approval",
+  github_create_issue: "GitHub issue awaiting approval",
+};
+
 export function NotificationsPanel() {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -24,13 +32,15 @@ export function NotificationsPanel() {
           api.activity().catch(() => []),
         ]);
         if (!alive) return;
-        const fromProposals: Note[] = proposals.map((p) => ({
-          id: `p:${p.id}`,
-          title: "Action awaiting approval",
-          body: p.summary ?? p.title ?? "A drafted action is ready for review.",
-          time: "pending",
-          unread: true,
-        }));
+        const fromProposals: Note[] = proposals
+          .filter((p) => p.status === "pending")
+          .map((p) => ({
+            id: `p:${p.id}`,
+            title: KIND_LABEL[p.kind] ?? "Action awaiting approval",
+            body: p.description,
+            time: timeAgo(p.createdAt),
+            unread: true,
+          }));
         const fromActivity: Note[] = activity.map((a) => ({
           id: `a:${a.id}`,
           title: a.action,
