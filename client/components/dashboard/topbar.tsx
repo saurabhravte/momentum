@@ -1,6 +1,6 @@
 "use client";
 
-import { UserButton, useUser } from "@clerk/nextjs";
+import { useMe } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Command, Menu, LogOut } from "lucide-react";
@@ -11,11 +11,11 @@ import { api } from "@/lib/api";
 import { getGreeting } from "@/lib/greeting";
 
 export function Topbar({ onMenu }: { onMenu: () => void }) {
-  const { user, isSignedIn } = useUser();
+  const { me } = useMe();
   const togglePalette = useUiStore((s) => s.togglePalette);
   const router = useRouter();
 
-  const displayName = user?.fullName || user?.firstName || user?.username || "there";
+  const displayName = me?.name || "there";
 
   // Compute the greeting on the client only, so SSR/CSR can't disagree.
   const [greeting, setGreeting] = useState<string>("Welcome back");
@@ -75,19 +75,15 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
 
         <ThemeToggle />
 
-        {isSignedIn ? (
-          <UserButton appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
-        ) : (
-          <button
-            type="button"
-            onClick={customLogout}
-            aria-label="Sign out"
-            className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-muted hover:text-ink"
-            title="Sign out"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={customLogout}
+          aria-label="Sign out"
+          className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-muted hover:text-ink"
+          title="Sign out"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
       </div>
     </header>
   );

@@ -22,6 +22,20 @@ export function useMe() {
   return { me, loading };
 }
 
+/** Like useMe, but never redirects — for public/optional UI (e.g. the navbar). */
+export function useOptionalMe() {
+  const [me, setMe] = useState<MeDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    api
+      .me()
+      .then(setMe)
+      .catch(() => setMe(null))
+      .finally(() => setLoading(false));
+  }, []);
+  return { me, loading };
+}
+
 /** Tiny SWR-lite: load once, expose reload(). */
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []) {
   const [data, setData] = useState<T | null>(null);

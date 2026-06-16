@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@clerk/nextjs";
+import { useOptionalMe } from "@/lib/hooks";
 
 const LINKS = [
   { href: "#how", label: "How it works" },
@@ -16,7 +16,7 @@ const LINKS = [
 
 export function Navbar() {
   const [floating, setFloating] = useState(false);
-  const { isSignedIn } = useAuth();
+  const { me } = useOptionalMe();
 
   useEffect(() => {
     const onScroll = () => setFloating(window.scrollY > 24);
@@ -63,7 +63,7 @@ export function Navbar() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          {isSignedIn ? (
+          {me ? (
             <>
               <Link href="/dashboard" className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-bg">
                 Dashboard
