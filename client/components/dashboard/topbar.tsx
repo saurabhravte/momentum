@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Command, Menu, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
 import { useUiStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { getGreeting } from "@/lib/greeting";
@@ -69,6 +70,8 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
         >
           <Command className="h-4 w-4" />
         </button>
+
+        <NotificationsPanel />
 
         <ThemeToggle />
 
