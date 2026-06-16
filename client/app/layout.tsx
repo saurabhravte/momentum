@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
+
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/Toast";
 import { QueryProvider } from "@/lib/query-provider";
@@ -22,16 +22,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning className={jetBrainsMono.variable}>
-        <body className="font-sans antialiased">
-          <ThemeProvider>
-            <QueryProvider>
-              <ToastProvider>{children}</ToastProvider>
-            </QueryProvider>
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" suppressHydrationWarning className={jetBrainsMono.variable}>
+      <body className="font-sans antialiased">
+        <ThemeProvider>
+          <QueryProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </QueryProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
