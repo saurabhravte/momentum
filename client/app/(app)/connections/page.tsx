@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Check, ExternalLink, Lock, ArrowRight } from "lucide-react";
+import { Check, ExternalLink, Lock, ArrowRight, AlertCircle, RotateCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
 import { CONNECT_STEPS } from "@/lib/connect-steps";
@@ -151,6 +151,19 @@ function ConnectionsInner() {
     }
   }
 
+  async function resync(provider: string) {
+    setBusy(`resync:${provider}`);
+    try {
+      await api.resync(provider);
+      toast(`${PROVIDER_META[provider].name} resynced`, "success");
+      await reload();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Resync failed", "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl animate-rise">
       <header className="mb-6">
@@ -184,7 +197,10 @@ function ConnectionsInner() {
       <div className="grid gap-4 sm:grid-cols-2">
         {ORDER.map((key, i) => {
           const meta = PROVIDER_META[key];
+          const conn = (conns ?? []).find((c) => c.provider === key);
           const on = connected.includes(key);
+          const isError = conn?.status === "error";
+          const isConnecting = conn?.status === "connecting";
           const required = key === "gmail" || key === "googlecalendar";
           const isCurrent = currentStep === key;
           const highlight = focus === key;
@@ -194,7 +210,8 @@ function ConnectionsInner() {
               className={cn(
                 "card relative p-5 transition",
                 on && "border-accent/40",
-                (isCurrent || highlight) && "ring-2 ring-accent/30",
+                isError && "border-urgent/50 ring-2 ring-urgent/20",
+                (isCurrent || highlight) && !isError && "ring-2 ring-accent/30",
               )}
             >
               <div className="flex items-start justify-between">
@@ -209,6 +226,12 @@ function ConnectionsInner() {
                   <span className="chip bg-fyi/15 text-fyi">
                     <Check className="h-3 w-3" /> connected
                   </span>
+                ) : isError ? (
+                  <span className="chip bg-urgent/15 text-urgent">
+                    <AlertCircle className="h-3 w-3" /> needs attention
+                  </span>
+                ) : isConnecting ? (
+                  <span className="chip bg-reply/15 text-reply">connecting…</span>
                 ) : required ? (
                   <span className="chip bg-accent/15 text-accent">core</span>
                 ) : (
@@ -232,23 +255,39 @@ function ConnectionsInner() {
                 <Lock className="h-3 w-3" /> {meta.scope}
               </p>
 
-              <div className="mt-4">
+              <div className="mt-4 flex gap-2">
                 {on ? (
-                  <button className="btn-danger w-full" onClick={() => disconnect(key)} disabled={busy === key}>
-                    {busy === key ? "…" : "Disconnect & purge"}
-                  </button>
+                  <>
+                    <button
+                      className="btn-ghost flex-1"
+                      onClick={() => resync(key)}
+                      disabled={busy === key}
+                    >
+                      <RotateCw className={cn("h-4 w-4", busy === `resync:${key}` && "animate-spin")} />
+                      {busy === `resync:${key}` ? "Syncing…" : "Resync"}
+                    </button>
+                    <button
+                      className="btn-danger flex-1"
+                      onClick={() => disconnect(key)}
+                      disabled={busy === key}
+                    >
+                      {busy === key ? "…" : "Disconnect"}
+                    </button>
+                  </>
                 ) : (
                   <button
-                    className={cn("w-full", isCurrent ? "btn-primary" : "btn-ghost")}
+                    className={cn("w-full", isError ? "btn-danger" : isCurrent ? "btn-primary" : "btn-ghost")}
                     onClick={() => connect(key)}
                     disabled={busy === key}
                   >
                     {busy === key
                       ? "Redirecting…"
-                      : KEY_PROVIDERS[key]
-                        ? `Add ${meta.name} token`
-                        : `Connect ${meta.name}`}
-                    {!busy && isCurrent && <ArrowRight className="h-4 w-4" />}
+                      : isError
+                        ? "Reconnect"
+                        : KEY_PROVIDERS[key]
+                          ? `Add ${meta.name} token`
+                          : `Connect ${meta.name}`}
+                    {!busy && isCurrent && !isError && <ArrowRight className="h-4 w-4" />}
                   </button>
                 )}
               </div>

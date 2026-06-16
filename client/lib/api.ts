@@ -69,6 +69,13 @@ export const api = {
     ),
   disconnect: (provider: string) => post<null>(`/connections/${provider}/disconnect`),
 
+  // resync pulls fresh data for an already-connected provider.
+  // Gmail re-syncs the inbox cache; others are best-effort no-ops server-side.
+  resync: (provider: string) =>
+    provider === "gmail"
+      ? post<{ synced: number }>("/inbox/sync").then(() => null)
+      : Promise.resolve(null),
+
   // inbox
   syncInbox: () => post<{ synced: number }>("/inbox/sync"),
   inbox: (q?: { priority?: string; label?: string }) => {

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { BentoCard } from "@/components/dashboard/bento-card";
 import { ProgressChart, type ProgressPoint } from "@/components/dashboard/progress-chart";
 import { SummaryCard } from "@/components/dashboard/summary-card";
-import { Switch } from "@/components/ui/switch";
 import { StatusBadge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/use-fetch";
@@ -164,22 +163,28 @@ export default function DashboardPage() {
                       <span className="grid h-9 w-9 place-items-center rounded-lg bg-surface-2 text-ink">
                         <t.icon className="h-4 w-4" />
                       </span>
-                      <Switch
-                        checked={isOn}
+                      <button
+                        type="button"
                         disabled={conn.loading}
-                        label={`Toggle ${t.name}`}
-                        onChange={() => toggleTool(t.key, isOn)}
-                      />
+                        onClick={() => toggleTool(t.key, isOn)}
+                        className={cn(
+                          "rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
+                          isOn
+                            ? "border border-line text-muted hover:text-ink"
+                            : "bg-accent text-bg hover:opacity-90",
+                        )}
+                      >
+                        {conn.loading ? "…" : isOn ? "Resync" : "Connect"}
+                      </button>
                     </div>
                     <div>
                       <p className="text-sm font-medium">{t.name}</p>
                       <span className="inline-flex items-center gap-1.5 text-xs text-muted">
-                        {/* the only bright color: a tiny live status dot */}
                         <span
                           className={cn("h-1.5 w-1.5 rounded-full", conn.loading && "animate-pulse")}
                           style={{ background: isOn ? t.color : "rgb(var(--faint))" }}
                         />
-                        {conn.loading ? "Checking" : isOn ? "Connected" : "Off"}
+                        {conn.loading ? "Checking" : isOn ? "Connected" : "Not connected"}
                       </span>
                     </div>
                   </div>
