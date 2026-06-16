@@ -66,7 +66,9 @@ function SidebarBody({
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 collapsed && "justify-center px-0",
-                active ? "bg-[rgb(var(--active-bg))] text-[rgb(var(--active-fg))]" : "text-muted hover:bg-surface-2 hover:text-ink",
+                active
+                  ? "bg-[rgb(var(--active-bg))] text-[rgb(var(--active-fg))]"
+                  : "text-muted hover:bg-surface-2 hover:text-ink",
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
@@ -146,8 +148,8 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 flex-col border-r border-line bg-surface p-4 transition-[width] duration-200 lg:flex",
-        collapsed ? "w-[76px] items-stretch px-2" : "w-72",
+        "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface p-4 transition-[width] duration-200 lg:flex",
+        collapsed ? "w-76px items-stretch px-2" : "w-72",
       )}
     >
       <SidebarBody collapsed={collapsed} onToggleCollapse={toggle} />
