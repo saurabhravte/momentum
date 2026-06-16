@@ -1,42 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Check, X } from "lucide-react";
+import { api } from "@/lib/api";
+import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-type Note = {
-  id: string;
-  title: string;
-  body: string;
-  time: string;
-  unread?: boolean;
-};
-
-/**
- * Collapsible notifications drawer that lives on the right edge of the
- * dashboard. The bell is the toggle: click to open, click the bell or X (or
- * the backdrop) to close. Replace SAMPLE with live data from lib/queries when
- * a notifications endpoint exists.
- */
-const SAMPLE: Note[] = [
-  { id: "1", title: "Slack connected", body: "Your Slack workspace is now syncing.", time: "just now", unread: true },
-  {
-    id: "2",
-    title: "Action awaiting approval",
-    body: "Draft reply to Priya is ready to send.",
-    time: "12m",
-    unread: true,
-  },
-  { id: "3", title: "Weekly summary", body: "Your Monday digest is ready to read.", time: "2h" },
-];
+type Note = { id: string; title: string; body: string; time: string; unread?: boolean };
 
 export function NotificationsPanel() {
   const [open, setOpen] = useState(false);
-  const [notes, setNotes] = useState<Note[]>(SAMPLE);
-  const unread = notes.filter((n) => n.unread).length;
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
-  // Close on Escape for keyboard users.
+  // Pull real notifications: pending approvals + recent activity.
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      try {
+        const [proposals, activity] = await Promise.all([
+          api.proposals().catch(() => []),
+          api.activity().catch(() => []),
+        ]);
+        if (!alive) return;
+        const fromProposals: Note[] = proposals.map((p) => ({
+          id: `p:${p.id}`,
+          title: "Action awaiting approval",
+          body: p.summary ?? p.title ?? "A drafted action is ready for review.",
+          time: "pending",
+          unread: true,
+        }));
+        const fromActivity: Note[] = activity.map((a) => ({
+          id: `a:${a.id}`,
+          title: a.action,
+          body: a.summary,
+          time: timeAgo(a.at),
+        }));
+        setNotes([...fromProposals, ...fromActivity]);
+      } catch {
+        /* keep prior state */
+      }
+    }
+    load();
+    const id = setInterval(load, 60_000); // poll once a minute
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  const visible = useMemo(() => notes.map((n) => ({ ...n, unread: n.unread && !readIds.has(n.id) })), [notes, readIds]);
+  const unread = visible.filter((n) => n.unread).length;
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -56,7 +72,7 @@ export function NotificationsPanel() {
         <Bell className="h-4 w-4" />
         {unread > 0 && (
           <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-bg">
-            {unread}
+            {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
@@ -69,7 +85,7 @@ export function NotificationsPanel() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-[1px]"
+              className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm"
               aria-hidden
             />
             <motion.aside
@@ -87,7 +103,7 @@ export function NotificationsPanel() {
                   {unread > 0 && (
                     <button
                       type="button"
-                      onClick={() => setNotes((ns) => ns.map((n) => ({ ...n, unread: false })))}
+                      onClick={() => setReadIds(new Set(notes.map((n) => n.id)))}
                       className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted transition-colors hover:text-ink"
                     >
                       <Check className="h-3 w-3" /> Mark all read
@@ -105,16 +121,16 @@ export function NotificationsPanel() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-2">
-                {notes.length === 0 ? (
+                {visible.length === 0 ? (
                   <p className="px-3 py-10 text-center text-sm text-faint">You&apos;re all caught up.</p>
                 ) : (
                   <ul className="space-y-1">
-                    {notes.map((n) => (
+                    {visible.map((n) => (
                       <li
                         key={n.id}
                         className={cn(
                           "rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-2",
-                          n.unread && "bg-accent-soft/60",
+                          n.unread && "bg-accent-soft", // opaque, no /60
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
