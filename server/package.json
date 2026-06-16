@@ -14,6 +14,7 @@
     "perf": "node scripts/perf-check.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.177",
     "@anthropic-ai/sdk": "^0.104.1",
     "@corsair-dev/github": "^0.1.10",
     "@corsair-dev/gmail": "^0.1.4",

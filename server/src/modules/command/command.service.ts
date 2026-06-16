@@ -1,10 +1,12 @@
 import { nanoid } from "nanoid";
-import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
 import { and, eq } from "drizzle-orm";
+import { query, createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
+import { ClaudeProvider } from "@corsair-dev/mcp";
 import type { CommandResponse, ProposedAction } from "@momentum/shared";
 import { db, schema } from "../../common/config/db";
 import { corsairFor } from "../../common/config/corsair";
-import { anthropic, fenceUntrusted } from "../../common/services/ai/llm";
+import { fenceUntrusted } from "../../common/services/ai/llm";
 import { env } from "../../common/config/env";
 import * as emailSvc from "../inbox/inbox.service";
 import * as calSvc from "../calendar/calendar.service";
@@ -12,96 +14,21 @@ import * as slackSvc from "../integrations/slack.service";
 import * as ghSvc from "../integrations/github.service";
 import { logActivity } from "../../common/services/activity.service";
 
-/**
- * Natural-language command bar + agent chat, powered by Corsair MCP.
- *
- * Security model ("Momentum never sends without you"):
- *  - READ tools execute immediately (search mail, list events, read PRs).
- *  - WRITE tools (send email, create event, post Slack, create issue) do NOT
- *    execute — they create a row in proposed_actions. The UI shows an approval
- *    card; only POST /actions/:id/approve (a user session) runs the side effect.
- *  - The model literally has no tool that performs outbound effects directly,
- *    so prompt-injected emails cannot exfiltrate or send anything.
- */
+const READ_VERB = /(search|list|get|read|fetch|find|view|lookup)/i;
+const MUTATION_VERB =
+  /(send|create|post|update|delete|remove|add|reply|invite|archive|move|write|set|patch|put|draft)/i;
+const isReadOnly = (name: string) => READ_VERB.test(name) && !MUTATION_VERB.test(name);
 
-const TOOLS: Anthropic.Tool[] = [
-  {
-    name: "search_email",
-    description: "Semantic search over the user's cached email (fast, local).",
-    input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
-  },
-  {
-    name: "list_events",
-    description: "List the user's calendar events between two ISO datetimes (UTC).",
-    input_schema: {
-      type: "object",
-      properties: { from: { type: "string" }, to: { type: "string" } },
-      required: ["from", "to"],
-    },
-  },
-  {
-    name: "list_prs",
-    description: "List GitHub PRs awaiting the user's review.",
-    input_schema: { type: "object", properties: {} },
-  },
-  {
-    name: "propose_send_email",
-    description: "Propose sending an email. Requires user approval in the UI before anything is sent.",
-    input_schema: {
-      type: "object",
-      properties: {
-        to: { type: "array", items: { type: "string" } },
-        subject: { type: "string" },
-        body: { type: "string" },
-      },
-      required: ["to", "subject", "body"],
-    },
-  },
-  {
-    name: "propose_create_event",
-    description: "Propose a calendar event + invites. Requires user approval before creation.",
-    input_schema: {
-      type: "object",
-      properties: {
-        title: { type: "string" },
-        start: { type: "string", description: "ISO UTC" },
-        end: { type: "string", description: "ISO UTC" },
-        attendees: { type: "array", items: { type: "string" } },
-      },
-      required: ["title", "start", "end"],
-    },
-  },
-  {
-    name: "propose_slack_post",
-    description: "Propose posting a Slack message. Requires user approval.",
-    input_schema: {
-      type: "object",
-      properties: { channel: { type: "string" }, text: { type: "string" } },
-      required: ["channel", "text"],
-    },
-  },
-  {
-    name: "propose_github_issue",
-    description: "Propose creating a GitHub issue. Requires user approval.",
-    input_schema: {
-      type: "object",
-      properties: {
-        owner: { type: "string" },
-        repo: { type: "string" },
-        title: { type: "string" },
-        body: { type: "string" },
-      },
-      required: ["owner", "repo", "title"],
-    },
-  },
-];
-
-const PROPOSAL_KIND: Record<string, ProposedAction["kind"]> = {
+const PROPOSAL_KIND = {
   propose_send_email: "send_email",
   propose_create_event: "create_event",
   propose_slack_post: "slack_post",
   propose_github_issue: "github_create_issue",
-};
+} as const satisfies Record<string, ProposedAction["kind"]>;
+
+const ok = (data: unknown) => ({
+  content: [{ type: "text" as const, text: JSON.stringify(data).slice(0, 6000) }],
+});
 
 export async function runCommand(userId: string, userTz: string, input: string): Promise<CommandResponse> {
   if (!env.ANTHROPIC_API_KEY) {
@@ -109,75 +36,104 @@ export async function runCommand(userId: string, userTz: string, input: string):
   }
 
   const nowIso = new Date().toISOString();
-  const messages: Anthropic.MessageParam[] = [{ role: "user", content: fenceUntrusted("user_command", input) }];
   const proposals: ProposedAction[] = [];
 
-  for (let turn = 0; turn < 6; turn++) {
-    const res = await anthropic.messages.create({
-      model: env.AI_AGENT_MODEL,
-      max_tokens: 2048,
-      system: `You are Momentum's command agent. Now (UTC): ${nowIso}. User timezone: ${userTz} — interpret natural language times ("9 AM next Thursday") in the user's timezone and convert to UTC ISO.
-Read tools run immediately. Anything outbound (email, invite, Slack post, issue) must go through a propose_* tool; tell the user it awaits their approval. Never claim something was sent.`,
-      tools: TOOLS,
-      messages,
+  // A propose_* tool: validates input, records an approval request, executes nothing.
+  const propose = (toolName: keyof typeof PROPOSAL_KIND, description: string, shape: z.ZodRawShape) =>
+    tool(toolName, description, shape, async (args) => {
+      const id = nanoid();
+      const kind = PROPOSAL_KIND[toolName];
+      const desc = describeProposal(kind, args as Record<string, unknown>);
+      await db
+        .insert(schema.proposedActions)
+        .values({ id, userId, kind, description: desc, payload: args as Record<string, unknown>, status: "pending" });
+      proposals.push({
+        id,
+        kind,
+        description: desc,
+        payload: args as Record<string, unknown>,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      });
+      await logActivity(userId, "agent", "action.proposed", desc, id);
+      return ok({ proposed: true, id, note: "Awaiting user approval in the UI." });
     });
 
-    const toolUses = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
-    if (!toolUses.length || res.stop_reason !== "tool_use") {
-      const reply = res.content
-        .filter((b) => b.type === "text")
-        .map((b) => b.text)
-        .join("\n");
-      return { reply: reply || "Done.", proposals };
-    }
+  // Fast, local read tools backed by the app's existing services.
+  const readTools = [
+    tool(
+      "search_email",
+      "Semantic search over the user's cached email (fast, local).",
+      { query: z.string() },
+      async (a) => ok(await emailSvc.localSearch(userId, a.query, 8)),
+    ),
+    tool(
+      "list_events",
+      "List the user's calendar events between two ISO UTC datetimes.",
+      { from: z.string(), to: z.string() },
+      async (a) => ok(await calSvc.listEvents(userId, a.from, a.to)),
+    ),
+    tool("list_prs", "List GitHub PRs awaiting the user's review.", {}, async () =>
+      ok(await ghSvc.prsAwaitingReview(userId)),
+    ),
+  ];
 
-    messages.push({ role: "assistant", content: res.content });
-    const results: Anthropic.ToolResultBlockParam[] = [];
+  const proposeTools = [
+    propose("propose_send_email", "Propose sending an email. Requires user approval before anything is sent.", {
+      to: z.array(z.string()),
+      subject: z.string(),
+      body: z.string(),
+    }),
+    propose("propose_create_event", "Propose a calendar event + invites. Requires user approval before creation.", {
+      title: z.string(),
+      start: z.string().describe("ISO UTC"),
+      end: z.string().describe("ISO UTC"),
+      attendees: z.array(z.string()).optional(),
+    }),
+    propose("propose_slack_post", "Propose posting a Slack message. Requires user approval.", {
+      channel: z.string(),
+      text: z.string(),
+    }),
+    propose("propose_github_issue", "Propose creating a GitHub issue. Requires user approval.", {
+      owner: z.string(),
+      repo: z.string(),
+      title: z.string(),
+      body: z.string().optional(),
+    }),
+  ];
 
-    for (const tu of toolUses) {
-      const args = tu.input as Record<string, unknown>;
-      let output: unknown;
-      try {
-        if (tu.name === "search_email") {
-          output = await emailSvc.localSearch(userId, String(args.query ?? ""), 8);
-        } else if (tu.name === "list_events") {
-          output = await calSvc.listEvents(userId, String(args.from), String(args.to));
-        } else if (tu.name === "list_prs") {
-          output = await ghSvc.prsAwaitingReview(userId);
-        } else if (tu.name in PROPOSAL_KIND) {
-          const id = nanoid();
-          const kind = PROPOSAL_KIND[tu.name]!;
-          const description = describeProposal(kind, args);
-          await db.insert(schema.proposedActions).values({
-            id,
-            userId,
-            kind,
-            description,
-            payload: args,
-            status: "pending",
-          });
-          const p: ProposedAction = {
-            id,
-            kind,
-            description,
-            payload: args,
-            status: "pending",
-            createdAt: new Date().toISOString(),
-          };
-          proposals.push(p);
-          await logActivity(userId, "agent", "action.proposed", description, id);
-          output = { proposed: true, id, note: "Awaiting user approval in the UI." };
-        } else {
-          output = { error: "unknown tool" };
-        }
-      } catch (e) {
-        output = { error: "tool failed" };
-      }
-      results.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(output).slice(0, 6000) });
-    }
-    messages.push({ role: "user", content: results });
+  // Corsair's own tools via the official adapter, tenant-scoped, READ-ONLY only.
+  let corsairReadTools: Awaited<ReturnType<ClaudeProvider["build"]>> = [];
+  try {
+    const built = await new ClaudeProvider().build({ corsair: corsairFor(userId) });
+    corsairReadTools = built.filter((t) => isReadOnly(t.name));
+  } catch {
+    // If the adapter can't initialise (e.g. no connected providers yet), the
+    // agent still works with the local read tools above.
+    corsairReadTools = [];
   }
-  return { reply: "I hit my step limit — try a simpler command.", proposals };
+
+  const server = createSdkMcpServer({
+    name: "momentum",
+    tools: [...readTools, ...proposeTools, ...corsairReadTools],
+  });
+
+  const stream = query({
+    prompt: fenceUntrusted("user_command", input),
+    options: {
+      model: env.AI_AGENT_MODEL,
+      mcpServers: { momentum: server },
+      systemPrompt:
+        `You are Momentum's command agent. Now (UTC): ${nowIso}. User timezone: ${userTz} — interpret natural-language times ("9 AM next Thursday") in the user's timezone and convert to UTC ISO. ` +
+        `Read tools run immediately. Anything outbound (email, invite, Slack post, issue) MUST go through a propose_* tool and awaits the user's approval. Never claim something was sent.`,
+    },
+  });
+
+  let reply = "";
+  for await (const message of stream) {
+    if (message.type === "result" && message.subtype === "success") reply += message.result;
+  }
+  return { reply: reply.trim() || "Done.", proposals };
 }
 
 function describeProposal(kind: ProposedAction["kind"], args: Record<string, unknown>): string {
