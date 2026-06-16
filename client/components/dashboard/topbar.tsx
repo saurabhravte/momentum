@@ -20,10 +20,15 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
   // Compute the greeting on the client only, so SSR/CSR can't disagree.
   const [greeting, setGreeting] = useState<string>("Welcome back");
   useEffect(() => {
-    setGreeting(getGreeting());
-    // Refresh if the tab stays open across a time boundary.
-    const id = setInterval(() => setGreeting(getGreeting()), 60_000);
-    return () => clearInterval(id);
+    // Run updates asynchronously (next frame + interval) rather than
+    // synchronously in the effect body, which avoids cascading renders.
+    const update = () => setGreeting(getGreeting());
+    const raf = requestAnimationFrame(update);
+    const id = setInterval(update, 60_000);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearInterval(id);
+    };
   }, []);
 
   async function customLogout() {
