@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { Check, ExternalLink, Lock, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
+import { CONNECT_STEPS } from "@/lib/connect-steps";
 import { useToast } from "@/components/Toast";
 import { PROVIDER_META } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -208,6 +209,17 @@ function ConnectionsInner() {
               </div>
 
               <p className="mt-3 text-sm text-muted">{meta.blurb}</p>
+              {(() => {
+                const t = CONNECT_STEPS.find((c) => c.provider === key);
+                return t ? (
+                  <ol className="mt-3 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-muted">
+                    {t.steps.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ol>
+                ) : null;
+              })()}
+
               <p className="mt-2 flex items-center gap-1 text-[11px] text-faint">
                 <Lock className="h-3 w-3" /> {meta.scope}
               </p>
