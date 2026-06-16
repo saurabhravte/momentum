@@ -73,7 +73,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
         <ThemeToggle />
 
         {isSignedIn ? (
-          <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
+          <UserButton appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
         ) : (
           <button
             type="button"

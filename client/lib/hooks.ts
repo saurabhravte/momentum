@@ -54,7 +54,7 @@ type ShortcutMap = Record<string, (e: KeyboardEvent) => void>;
  */
 export function useShortcuts(map: ShortcutMap) {
   const pending = useRef<string | null>(null);
-  const timer = useRef<number>();
+  const timer = useRef<number | undefined>(undefined);
   const mapRef = useRef(map);
   mapRef.current = map;
 
