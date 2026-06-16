@@ -7,20 +7,24 @@
  */
 type IconProps = { className?: string };
 
-const base = (children: React.ReactNode) => (props: IconProps) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={1.75}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={props.className}
-    aria-hidden
-  >
-    {children}
-  </svg>
-);
+const base = (children: React.ReactNode) => {
+  const IconComponent = (props: IconProps) => (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={props.className}
+      aria-hidden
+    >
+      {children}
+    </svg>
+  );
+  IconComponent.displayName = "Icon";
+  return IconComponent;
+};
 
 export const Icon = {
   Sparkle: base(
