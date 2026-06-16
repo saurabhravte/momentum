@@ -1,72 +1,39 @@
-/**
- * Seeds the integration-level OAuth client credentials that Corsair needs
- * before generateOAuthUrl() can build a valid Google consent URL.
- *
- * WHY THIS EXISTS
- * ---------------
- * migrate-corsair.ts only CREATES the corsair_* tables. The Gmail + Google
- * Calendar plugins are OAuth plugins, and Corsair stores the shared OAuth2
- * client_id / client_secret / redirect_url in `corsair_integrations.config`
- * (encrypted via the KEK). If those are never written, every connect attempt
- * produces Google's `invalid_client` error — surfaced in the UI as
- * "invalid credential".
- *
- * This script writes them using Corsair's integration-level key managers:
- *   corsair.keys.<plugin>.set_client_id / set_client_secret / set_redirect_url
- *
- * It is idempotent — running it again just overwrites with the same values.
- *
- * RUN:  pnpm --filter @momentum/server setup:corsair   (see package.json script below)
- *       or:  tsx server/scripts/setup-corsair-oauth.ts
- *
- * REQUIRED ENV (already in server/.env):
- *   GOOGLE_CLIENT_ID
- *   GOOGLE_CLIENT_SECRET
- *   API_ORIGIN              (used to derive the Corsair callback redirect URI)
- */
 import "dotenv/config";
+import { setupCorsair } from "corsair/setup";
 import { corsair } from "../src/common/config/corsair";
 import { env } from "../src/common/config/env";
 
 // MUST be byte-for-byte identical to the redirect URI used at runtime in
-// connections.controller.ts (REDIRECT_URI = `${API_ORIGIN}/api/connections/callback`)
-// AND registered as an Authorized redirect URI in the Google Cloud console.
+// connections.controller.ts (`${API_ORIGIN}/api/connections/callback`) AND
+// registered as an Authorized redirect URI in the Google Cloud console.
 const REDIRECT_URI = `${env.API_ORIGIN}/api/connections/callback`;
-
-// Both Google plugins share the same Google OAuth client.
-const GOOGLE_PLUGINS = ["gmail", "googlecalendar"] as const;
-
-type IntegrationKeys = {
-  set_client_id: (v: string | null) => Promise<void>;
-  set_client_secret: (v: string | null) => Promise<void>;
-  set_redirect_url: (v: string | null) => Promise<void>;
-};
 
 async function main() {
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
-    console.error(
-      "✗ GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are empty. Fill them in server/.env first.",
-    );
+    console.error("✗ GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are empty. Fill them in server/.env first.");
     process.exit(1);
   }
 
-  // `corsair.keys` is the integration-level (shared-across-tenants) key manager.
-  const keys = (corsair as unknown as { keys: Record<string, IntegrationKeys> }).keys;
+  // Field names are Corsair's oauth_2 integration-level fields:
+  // client_id, client_secret, redirect_url. Gmail + Calendar share one client.
+  const googleCreds = {
+    client_id: env.GOOGLE_CLIENT_ID,
+    client_secret: env.GOOGLE_CLIENT_SECRET,
+    redirect_url: REDIRECT_URI,
+  };
 
-  for (const plugin of GOOGLE_PLUGINS) {
-    const k = keys[plugin];
-    if (!k) {
-      console.error(`✗ Plugin "${plugin}" not registered on the Corsair instance.`);
-      process.exit(1);
-    }
-    await k.set_client_id(env.GOOGLE_CLIENT_ID);
-    await k.set_client_secret(env.GOOGLE_CLIENT_SECRET);
-    await k.set_redirect_url(REDIRECT_URI);
-    console.log(`✓ ${plugin}: client credentials + redirect_url seeded`);
-  }
+  // setupCorsair creates the integration/account rows AND writes the creds.
+  // Multi-tenant integration-level setup doesn't need a tenantId.
+  const log = await setupCorsair(corsair, {
+    credentials: {
+      gmail: googleCreds,
+      googlecalendar: googleCreds,
+    },
+  });
 
+  console.log(log);
   console.log("");
-  console.log("Corsair OAuth setup complete.");
+  console.log("✓ Corsair OAuth setup complete (integrations created + credentials seeded).");
   console.log(`Redirect URI in use: ${REDIRECT_URI}`);
   console.log("Make sure this EXACT URI is an Authorized redirect URI in Google Cloud Console.");
   process.exit(0);

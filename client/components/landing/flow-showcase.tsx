@@ -181,9 +181,6 @@ export function FlowShowcase() {
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={0} />
       </ReactFlow>
-      <p className="pointer-events-none absolute bottom-3 left-4 text-xs text-faint">
-        Tap a tool to see it connect — live preview
-      </p>
     </div>
   );
 }

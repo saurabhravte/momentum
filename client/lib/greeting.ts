@@ -14,7 +14,7 @@ export function getGreeting(date: Date = new Date()): string {
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   if (h < 21) return "Good evening";
-  return "Good night";
+  return "Last push of the day";
 }
 
 /** Full line with the name appended, e.g. "Good morning, Saurabh". */
