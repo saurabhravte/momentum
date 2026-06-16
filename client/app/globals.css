@@ -15,10 +15,12 @@
   --surface-2: 242 240 234;
   --line: 230 227 220;
   --ink: 26 24 21;
-  --muted: oklch(0.97 0 0);
+  /* RGB triplets — these are consumed as rgb(var(--token)). Never use oklch() here. */
+  --muted: 120 116 108;
   --faint: 156 150 142;
-  --accent: oklch(0.97 0 0);
-  --accent-soft: 237 233 254;
+  /* Bright, engaging accent (ybamm-style lime/chartreuse) for small components. */
+  --accent: 132 204 22;
+  --accent-soft: 236 252 203;
 
   --active-bg: 232 229 222;
   --active-fg: 26 24 21;
@@ -78,10 +80,12 @@
   --surface-2: 24 24 28;
   --line: 36 36 42;
   --ink: 244 244 246;
-  --muted: oklch(0.269 0 0);
+  /* RGB triplets — consumed as rgb(var(--token)). Never oklch() here. */
+  --muted: 150 150 160;
   --faint: 102 102 116;
-  --accent: oklch(0.269 0 0);
-  --accent-soft: 38 30 64;
+  /* Bright accent that reads on near-black (ybamm-style lime). */
+  --accent: 163 230 53;
+  --accent-soft: 38 46 18;
 
   --active-bg: 40 34 60;
   --active-fg: 245 243 255;

@@ -30,31 +30,37 @@ export function Footer() {
   const year = new Date().getFullYear();
   return (
     <footer className="border-t border-line bg-surface">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-10 sm:flex-row sm:justify-between">
-        <span className="order-last text-xs font-medium text-faint sm:absolute sm:bottom-3 sm:left-6 sm:order-first">
-          Momentum v1.0
-        </span>
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-ink text-bg">
-            <Logo className="h-4 w-auto" />
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-12 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col items-center gap-2 sm:items-start">
+          <Link href="/" className="flex items-center gap-2 font-semibold text-ink">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-ink text-bg">
+              <Logo className="h-4 w-auto" />
+            </span>
+            Momentum
+          </Link>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            v1.0 — stable
           </span>
-          Momentum
-        </Link>
-        <div className="flex items-center gap-4">
-          {SOCIALS.map(({ label, href, Icon }) => (
-            <Link
-              key={label}
-              href={href}
-              aria-label={label}
-              target={href.startsWith("http") ? "_blank" : undefined}
-              rel="noreferrer"
-              className="text-muted transition-colors hover:text-ink"
-            >
-              <Icon className="h-5 w-5" />
-            </Link>
-          ))}
         </div>
-        <p className="text-xs text-faint">© {year} Momentum</p>
+
+        <div className="flex flex-col items-center gap-4 sm:items-end">
+          <div className="flex items-center gap-4">
+            {SOCIALS.map(({ label, href, Icon }) => (
+              <Link
+                key={label}
+                href={href}
+                aria-label={label}
+                target={href.startsWith("http") ? "_blank" : undefined}
+                rel="noreferrer"
+                className="text-muted transition-colors hover:text-ink"
+              >
+                <Icon className="h-5 w-5" />
+              </Link>
+            ))}
+          </div>
+          <p className="text-xs text-faint">© {year} Momentum · One happy place for your work.</p>
+        </div>
       </div>
     </footer>
   );

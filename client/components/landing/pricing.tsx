@@ -125,7 +125,7 @@ export function Pricing() {
               )}
             >
               {p.highlight && (
-                <span className="absolute -top-3 left-6 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white">
+                <span className="absolute -top-3 left-6 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-bg">
                   Most popular
                 </span>
               )}
@@ -168,7 +168,7 @@ export function Pricing() {
                 href="/login"
                 className={cn(
                   "mt-6 rounded-full px-4 py-2.5 text-center text-sm font-medium transition-transform hover:scale-[1.02]",
-                  p.highlight ? "bg-accent text-white" : "border border-line bg-bg text-ink hover:bg-surface-2",
+                  p.highlight ? "bg-accent text-bg" : "border border-line bg-bg text-ink hover:bg-surface-2",
                 )}
               >
                 {p.cta}
