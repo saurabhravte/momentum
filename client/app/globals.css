@@ -11,8 +11,8 @@
   --ink: 26 24 21;
   --muted: 96 92 86;
   --faint: 156 150 142;
-  --accent: 13 148 136;
-  --accent-soft: 224 247 244;
+  --accent: 124 58 237;
+  --accent-soft: 237 233 254;
 
   --active-bg: 232 229 222;
   --active-fg: 26 24 21;
@@ -37,18 +37,18 @@
 }
 
 .dark {
-  --bg: 9 9 11;
-  --surface: 18 18 21;
-  --surface-2: 26 26 30;
-  --line: 38 38 44;
-  --ink: 250 250 250;
-  --muted: 161 161 170;
-  --faint: 110 110 120;
-  --accent: 45 212 191;
-  --accent-soft: 12 53 50;
+  --bg: 8 8 10;
+  --surface: 16 16 19;
+  --surface-2: 24 24 28;
+  --line: 36 36 42;
+  --ink: 244 244 246;
+  --muted: 150 150 162;
+  --faint: 102 102 116;
+  --accent: 167 139 250;
+  --accent-soft: 38 30 64;
 
-  --active-bg: 42 42 48;
-  --active-fg: 250 250 250;
+  --active-bg: 40 34 60;
+  --active-fg: 245 243 255;
 
   --ink-100: 245 245 247;
   --ink-200: 228 228 232;
