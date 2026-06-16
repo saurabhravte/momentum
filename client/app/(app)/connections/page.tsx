@@ -92,10 +92,10 @@ function KeyModal({ provider, onClose, onDone }: { provider: string; onClose: ()
           <Lock className="h-3 w-3" /> Encrypted at rest with the Corsair KEK envelope. Never logged.
         </p>
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" className="btn-ghost !py-1.5 text-xs" onClick={onClose}>
+          <button type="button" className="btn-ghost py-1.5! text-xs" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn-primary !py-1.5 text-xs" disabled={isSubmitting}>
+          <button type="submit" className="btn-primary py-1.5! text-xs" disabled={isSubmitting}>
             {isSubmitting ? "Storing…" : "Connect"}
           </button>
         </div>
