@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -30,10 +30,9 @@ const GithubIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const TOOL_META: Record<
-  ToolKey,
-  { name: string; icon: React.ComponentType<{ className?: string }>; color: string; soft: string }
-> = {
+type ToolMeta = { name: string; icon: React.ComponentType<{ className?: string }>; color: string; soft: string };
+
+const TOOL_META: Record<ToolKey, ToolMeta> = {
   gmail: { name: "Gmail", icon: Mail, color: "#EA4335", soft: "rgba(234,67,53,0.12)" },
   gcal: { name: "Calendar", icon: Calendar, color: "#1A73E8", soft: "rgba(26,115,232,0.12)" },
   slack: { name: "Slack", icon: SlackIcon, color: "#611F69", soft: "rgba(97,31,105,0.12)" },
@@ -104,11 +103,24 @@ const nodeTypes = { center: CenterNode, tool: ToolNode };
 
 export function FlowShowcase() {
   const [connected, setConnected] = useState<Record<ToolKey, boolean>>({
-    gmail: true,
-    gcal: true,
+    gmail: false,
+    gcal: false,
     slack: false,
-    github: true,
+    github: false,
   });
+  const played = useRef(false);
+
+  // Auto-play the "connect your apps" sequence once on mount: each tool wires
+  // into the Momentum hub in turn. Tap-to-toggle still works afterwards.
+  useEffect(() => {
+    if (played.current) return;
+    played.current = true;
+    const order: ToolKey[] = ["gmail", "gcal", "github", "slack"];
+    const timers = order.map((tool, i) =>
+      setTimeout(() => setConnected((c) => ({ ...c, [tool]: true })), 500 + i * 650),
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
   const toggle = useCallback((key: ToolKey) => {
     setConnected((c) => ({ ...c, [key]: !c[key] }));
