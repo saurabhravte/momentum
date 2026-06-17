@@ -28,10 +28,17 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     });
   }
   console.error(`[error] ${req.method} ${req.path}`, isProd ? (err as Error)?.message : err);
+  // In production we never leak internals. In development we surface the real
+  // message + stack so a 500 is debuggable straight from the response body.
+  const realMessage = (err as Error)?.message ?? "Something went wrong";
   return res.status(500).json({
     success: false,
     statusCode: 500,
-    message: "Something went wrong",
-    error: { code: "INTERNAL", message: "Something went wrong" },
+    message: isProd ? "Something went wrong" : realMessage,
+    error: {
+      code: "INTERNAL",
+      message: isProd ? "Something went wrong" : realMessage,
+      ...(isProd ? {} : { stack: (err as Error)?.stack }),
+    },
   });
 }

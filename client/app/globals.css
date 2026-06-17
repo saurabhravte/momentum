@@ -18,11 +18,11 @@
   /* RGB triplets — these are consumed as rgb(var(--token)). Never use oklch() here. */
   --muted: 120 116 108;
   --faint: 156 150 142;
-  /* Bright, engaging accent (ybamm-style lime/chartreuse) for small components. */
-  --accent: 132 204 22;
-  /* Bright hover accent (cyan) — used for hover borders/sheens, NOT olive lime. */
+  /* Neon electric-blue accent for highlights, buttons, switches (was lime). */
+  --accent: 37 99 235;
+  /* Bright hover accent (cyan) — used for hover borders/sheens. */
   --hover: 6 182 212;
-  --accent-soft: 236 252 203;
+  --accent-soft: 219 234 254;
 
   --active-bg: 236 252 203;
   --active-fg: 54 83 20;
@@ -85,10 +85,10 @@
   /* RGB triplets — consumed as rgb(var(--token)). Never oklch() here. */
   --muted: 150 150 160;
   --faint: 102 102 116;
-  /* Bright accent that reads on near-black (ybamm-style lime). */
-  --accent: 163 230 53;
+  /* Neon electric-blue accent that reads on near-black (was lime). */
+  --accent: 56 189 248;
   --hover: 34 211 238;
-  --accent-soft: 38 46 18;
+  --accent-soft: 12 41 74;
 
   --active-bg: 38 46 18;
   --active-fg: 190 242 100;
@@ -133,7 +133,7 @@
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.77 0.18 130);
+  --sidebar-primary: oklch(0.62 0.19 250);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
@@ -417,12 +417,12 @@ body {
   --shadow-soft-lg: 0 8px 30px -12px rgb(0 0 0 / 0.18), 0 2px 8px -4px rgb(0 0 0 / 0.08);
   --shadow-float: 0 12px 40px -16px rgb(0 0 0 / 0.22);
 
-  /* bright secondary accents — used ONLY for small interactive flourishes,
-     the primary stays the lime --accent above. */
-  --pop-blue: 59 130 246;
-  --pop-pink: 236 72 153;
-  --pop-amber: 245 158 11;
-  --pop-cyan: 6 182 212;
+  /* neon secondary accents — used ONLY for small interactive flourishes,
+     the primary stays the electric-blue --accent above. */
+  --pop-blue: 56 132 255;
+  --pop-pink: 244 63 153;
+  --pop-amber: 251 158 22;
+  --pop-cyan: 34 211 238;
 }
 
 /* Brighter grid backdrop (vs the subtle dot-grid) */

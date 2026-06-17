@@ -126,11 +126,11 @@ export function Pricing() {
               }}
               className={cn(
                 "relative flex flex-col rounded-3xl border bg-surface p-6 transition-shadow",
-                p.highlight && "shadow-soft-lg",
+                p.highlight && "pt-9 shadow-soft-lg",
               )}
             >
               {p.highlight && (
-                <span className="absolute -top-3 left-6 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-bg">
+                <span className="absolute -top-3 left-6 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-bg shadow-soft">
                   Most popular
                 </span>
               )}
