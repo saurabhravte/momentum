@@ -82,6 +82,23 @@ export default function DashboardPage() {
 
   const connList = conns.data ?? [];
   const isConnected = (key: ProviderKey) => connList.some((c) => c.provider === key && c.status === "connected");
+  // status drives the card colour: connected = green, error = red, otherwise grey
+  const statusOf = (key: ProviderKey): "connected" | "error" | "off" => {
+    const c = connList.find((x) => x.provider === key);
+    if (c?.status === "connected") return "connected";
+    if (c?.status === "error") return "error";
+    return "off";
+  };
+  const STATUS_COLOR: Record<"connected" | "error" | "off", string> = {
+    connected: "34 197 94", // bright green
+    error: "var(--urgent)",
+    off: "var(--faint)",
+  };
+  const STATUS_LABEL: Record<"connected" | "error" | "off", string> = {
+    connected: "Connected",
+    error: "Needs attention",
+    off: "Not connected",
+  };
   const connectedCount = TOOLS.filter((t) => isConnected(t.key)).length;
   const hasAnyConnection = connectedCount > 0;
 
@@ -153,10 +170,19 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {TOOLS.map((t) => {
                 const isOn = isConnected(t.key);
+                const status = statusOf(t.key);
+                const color = STATUS_COLOR[status];
                 return (
-                  <div key={t.key} className="flex flex-col items-start gap-3 rounded-lg border border-line bg-bg p-3">
+                  <div
+                    key={t.key}
+                    style={{ borderColor: `rgb(${color} / 0.55)`, boxShadow: `inset 0 0 0 1px rgb(${color} / 0.12)` }}
+                    className="flex flex-col items-start gap-3 rounded-lg border bg-bg p-3"
+                  >
                     <div className="flex w-full items-start justify-between">
-                      <span className="grid h-9 w-9 place-items-center rounded-lg bg-surface-2 text-ink">
+                      <span
+                        className="grid h-9 w-9 place-items-center rounded-lg"
+                        style={{ background: `rgb(${color} / 0.14)`, color: `rgb(${color})` }}
+                      >
                         <t.icon className="h-4 w-4" />
                       </span>
                       <button
@@ -175,12 +201,12 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium">{t.name}</p>
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+                      <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: `rgb(${color})` }}>
                         <span
-                          className={cn("h-1.5 w-1.5 rounded-full", conns.loading && "animate-pulse")}
-                          style={{ background: isOn ? t.color : "rgb(var(--faint))" }}
+                          className={cn("h-2 w-2 rounded-full", conns.loading && "animate-pulse")}
+                          style={{ background: `rgb(${color})`, boxShadow: `0 0 6px rgb(${color} / 0.7)` }}
                         />
-                        {conns.loading ? "Checking" : isOn ? "Connected" : "Not connected"}
+                        {conns.loading ? "Checking" : STATUS_LABEL[status]}
                       </span>
                     </div>
                   </div>

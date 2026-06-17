@@ -15,6 +15,15 @@ type MainTab = "all" | "unread" | "others";
 
 const PRIORITY_FILTERS: EmailPriority[] = ["urgent", "needs_reply", "waiting", "fyi", "newsletter"];
 
+/* Bright accent bar per priority — gives the list colour like the reference. */
+const PRIORITY_BAR: Record<EmailPriority, string> = {
+  urgent: "var(--urgent)",
+  needs_reply: "var(--hover)",
+  waiting: "var(--pop-amber)",
+  fyi: "var(--pop-blue)",
+  newsletter: "var(--pop-pink)",
+};
+
 const SNOOZE_PRESETS = [
   { label: "3 hours", ms: 3 * 3600_000 },
   { label: "This evening", evening: true },
@@ -307,9 +316,15 @@ export default function InboxPage() {
                               setSelected(m);
                               setCursor(emails.indexOf(m));
                             }}
-                            style={on ? { borderLeftColor: "rgb(var(--hover))" } : undefined}
-                            className={`flex w-full gap-3 border-l-2 px-3.5 py-3 text-left transition-colors ${
-                              on ? "border-l-[rgb(var(--hover))] bg-surface-2" : "border-l-transparent hover:bg-surface-2"
+                            style={{
+                              borderLeftColor: on
+                                ? "rgb(var(--hover))"
+                                : m.priority
+                                  ? PRIORITY_BAR[m.priority]
+                                  : "transparent",
+                            }}
+                            className={`flex w-full gap-3 border-l-[3px] px-3.5 py-3 text-left transition-colors ${
+                              on ? "bg-surface-2" : "hover:bg-surface-2"
                             }`}
                           >
                             <Avatar name={name} />

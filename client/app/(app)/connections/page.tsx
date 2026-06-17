@@ -139,12 +139,23 @@ function ConnectionsInner() {
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const [keyModal, setKeyModal] = useState<string | null>(null);
+  // Optimistically-disconnected providers: the UI flips immediately, even if the
+  // server's connections() momentarily still reports "connected".
+  const [forcedOff, setForcedOff] = useState<Set<string>>(new Set());
 
-  const connected: string[] = (conns ?? []).filter((c) => c.status === "connected").map((c) => c.provider);
+  const connected: string[] = (conns ?? [])
+    .filter((c) => c.status === "connected" && !forcedOff.has(c.provider))
+    .map((c) => c.provider);
   const doneCount = ORDER.filter((p) => connected.includes(p)).length;
   const currentStep = ORDER.find((p) => (p === "gmail" || p === "googlecalendar") && !connected.includes(p)) ?? null;
 
   async function connect(provider: string) {
+    setForcedOff((s) => {
+      if (!s.has(provider)) return s;
+      const n = new Set(s);
+      n.delete(provider);
+      return n;
+    });
     if (KEY_PROVIDERS[provider]) {
       setKeyModal(provider);
       return;
@@ -161,11 +172,18 @@ function ConnectionsInner() {
 
   async function disconnect(provider: string) {
     setBusy(provider);
+    setForcedOff((s) => new Set(s).add(provider)); // flip the card to "disconnected" immediately
     try {
       await api.disconnect(provider);
       toast(`${PROVIDER_META[provider].name} disconnected — credential wiped, cached data purged`, "success");
       await reload();
     } catch (e) {
+      // revert the optimistic flip on failure
+      setForcedOff((s) => {
+        const n = new Set(s);
+        n.delete(provider);
+        return n;
+      });
       toast(e instanceof Error ? e.message : "Disconnect failed", "error");
     } finally {
       setBusy(null);

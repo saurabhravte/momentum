@@ -1,18 +1,47 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DOMPurify from "dompurify";
+
+/** Bumps a counter whenever the <html> class list changes (theme toggle). */
+function useThemeTick() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const obs = new MutationObserver(() => setTick((t) => t + 1));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return tick;
+}
+
+/** Read an app CSS variable (an "R G B" triple) as a usable rgb() string. */
+function cssVar(name: string, fallback: string) {
+  if (typeof window === "undefined") return fallback;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return raw ? `rgb(${raw})` : fallback;
+}
 
 /**
  * Defense in depth for untrusted email HTML:
  *  1. DOMPurify strips scripts/handlers/forms.
  *  2. Rendered in an <iframe sandbox> with no scripts and no same-origin access.
  *  3. Remote images (tracking pixels!) blocked by default, opt-in per email.
+ * The iframe styling is now derived from the app theme so the body is readable
+ * in light mode (was hardcoded dark, which looked blank/broken on white).
  */
 export function EmailViewer({ html, text }: { html: string | null; text: string }) {
   const [loadImages, setLoadImages] = useState(false);
+  const tick = useThemeTick();
 
   const { doc, blockedImages } = useMemo(() => {
+    // theme-derived palette (recomputed on theme change via `tick`)
+    const bg = cssVar("--surface", "rgb(255 255 255)");
+    const fg = cssVar("--ink", "rgb(17 17 17)");
+    const muted = cssVar("--muted", "rgb(110 110 120)");
+    const line = cssVar("--line", "rgb(225 225 230)");
+    const link = cssVar("--hover", "rgb(6 182 212)");
+    void tick;
+
     if (!html) return { doc: null, blockedImages: 0 };
     let blocked = 0;
     const clean = DOMPurify.sanitize(html, {
@@ -28,21 +57,23 @@ export function EmailViewer({ html, text }: { html: string | null; text: string 
         blocked++;
         img.setAttribute("data-blocked-src", src);
         img.removeAttribute("src");
-        img.style.cssText = "background:#111a32;border:1px dashed #27375e;min-height:24px;min-width:24px;";
+        img.style.cssText = `background:${line};border:1px dashed ${muted};min-height:24px;min-width:24px;`;
         img.alt = "🖼 image blocked";
       }
     });
     const body = `<!doctype html><html><head><style>
-      body{font:14px/1.6 -apple-system,system-ui,sans-serif;color:#dde4f4;background:#0d1528;margin:0;padding:16px;word-break:break-word}
-      a{color:#f0a93a} img{max-width:100%;height:auto} blockquote{border-left:3px solid #27375e;margin:8px 0;padding-left:12px;color:#8b9bc4}
+      body{font:14px/1.6 -apple-system,system-ui,sans-serif;color:${fg};background:${bg};margin:0;padding:16px;word-break:break-word}
+      a{color:${link}} img{max-width:100%;height:auto} blockquote{border-left:3px solid ${line};margin:8px 0;padding-left:12px;color:${muted}}
       table{max-width:100% !important}
     </style></head><body>${container.innerHTML}</body></html>`;
     return { doc: body, blockedImages: blocked };
-  }, [html, loadImages]);
+  }, [html, loadImages, tick]);
 
   if (!doc) {
     return (
-      <pre className="whitespace-pre-wrap rounded-xl bg-ink-850 p-4 text-sm leading-relaxed text-ink-200">{text}</pre>
+      <pre className="whitespace-pre-wrap rounded-xl border border-line bg-surface-2 p-4 text-sm leading-relaxed text-ink">
+        {text}
+      </pre>
     );
   }
 
@@ -51,7 +82,7 @@ export function EmailViewer({ html, text }: { html: string | null; text: string 
       {blockedImages > 0 && !loadImages && (
         <button
           onClick={() => setLoadImages(true)}
-          className="mb-2 rounded-lg border border-ink-700 px-2.5 py-1 text-xs text-ink-300 hover:border-[rgb(var(--hover)/0.6)] hover:text-[rgb(var(--hover))]"
+          className="mb-2 rounded-lg border border-line px-2.5 py-1 text-xs text-muted hover:border-[rgb(var(--hover)/0.6)] hover:text-[rgb(var(--hover))]"
         >
           🖼 {blockedImages} remote image{blockedImages > 1 ? "s" : ""} blocked (tracking protection) — load
         </button>
@@ -59,7 +90,7 @@ export function EmailViewer({ html, text }: { html: string | null; text: string 
       <iframe
         sandbox=""
         srcDoc={doc}
-        className="h-[420px] w-full rounded-xl border border-ink-800 bg-ink-850"
+        className="h-[420px] w-full rounded-xl border border-line bg-surface"
         title="Email content (sandboxed)"
       />
     </div>
