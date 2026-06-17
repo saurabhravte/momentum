@@ -1,24 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { EmailPriority, EmailSummaryDto } from "@momentum/shared";
-import { PaperPlaneTilt, MagnifyingGlass, FunnelSimple, X } from "@phosphor-icons/react";
+import { PaperPlaneTilt, MagnifyingGlass, FunnelSimple, X, ArrowLeft } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
-import { useAsync, useShortcuts } from "@/lib/hooks";
+import { useAsync, useShortcuts, useMe } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { EmailViewer } from "@/components/EmailViewer";
 import { useFocusMode } from "@/lib/store";
 import { LABEL_META, PRIORITY_META, timeAgo } from "@/lib/format";
+import { getGreeting } from "@/lib/greeting";
 
-const TABS: { key: EmailPriority | "all" | "follow-ups"; label: string }[] = [
-  { key: "all", label: "All mail" },
-  { key: "urgent", label: "Urgent" },
-  { key: "needs_reply", label: "Needs reply" },
-  { key: "waiting", label: "Waiting" },
-  { key: "fyi", label: "FYI" },
-  { key: "newsletter", label: "Newsletter" },
-  { key: "follow-ups", label: "⏰ Follow-ups" },
-];
+type MainTab = "all" | "unread" | "others";
+
+const PRIORITY_FILTERS: EmailPriority[] = ["urgent", "needs_reply", "waiting", "fyi", "newsletter"];
 
 const SNOOZE_PRESETS = [
   { label: "3 hours", ms: 3 * 3600_000 },
@@ -31,6 +26,9 @@ const SNOOZE_PRESETS = [
 const AVATAR_COLORS = ["var(--pop-cyan)", "var(--pop-amber)", "var(--pop-pink)", "var(--pop-blue)", "var(--hover)"];
 function senderName(from: string) {
   return from.replace(/<.*>/, "").replace(/"/g, "").trim() || from;
+}
+function senderEmail(from: string) {
+  return from.match(/<(.*)>/)?.[1] ?? from;
 }
 function initials(name: string) {
   return name
@@ -56,11 +54,11 @@ function dayBucket(iso: string) {
   return "Earlier";
 }
 
-function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   const color = colorFor(name);
   return (
     <span
-      className="grid shrink-0 place-items-center rounded-full text-[11px] font-semibold"
+      className="grid shrink-0 place-items-center rounded-full text-xs font-semibold"
       style={{ width: size, height: size, background: `rgb(${color} / 0.18)`, color: `rgb(${color})` }}
     >
       {initials(name)}
@@ -69,8 +67,11 @@ function Avatar({ name, size = 36 }: { name: string; size?: number }) {
 }
 
 export default function InboxPage() {
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
+  const { me } = useMe();
+  const [mainTab, setMainTab] = useState<MainTab>("all");
+  const [priority, setPriority] = useState<EmailPriority | null>(null);
   const [label, setLabel] = useState<string | null>(null);
+  const [followUps, setFollowUps] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<EmailSummaryDto | null>(null);
@@ -79,33 +80,50 @@ export default function InboxPage() {
   const focus = useFocusMode();
   const toast = useToast();
 
+  // greeting computed client-side to avoid SSR/CSR mismatch
+  const [greeting, setGreeting] = useState("Welcome");
+  useEffect(() => {
+    setGreeting(getGreeting());
+  }, []);
+
   const list = useAsync(
     () =>
-      tab === "follow-ups"
+      followUps
         ? api.followUps()
-        : api.inbox({ priority: tab === "all" ? undefined : tab, label: label ?? undefined }),
-    [tab, label],
+        : api.inbox({ priority: priority ?? undefined, label: label ?? undefined }),
+    [priority, label, followUps],
   );
 
-  const emails = useMemo(() => {
+  // base set after focus-mode + search (tab counts read from this)
+  const base = useMemo(() => {
     let e = list.data ?? [];
     if (focus) e = e.filter((m) => m.priority === "urgent" || m.priority === "needs_reply");
     if (query.trim()) {
       const q = query.toLowerCase();
       e = e.filter(
-        (m) => m.subject.toLowerCase().includes(q) || m.from.toLowerCase().includes(q) || m.snippet.toLowerCase().includes(q),
+        (m) =>
+          m.subject.toLowerCase().includes(q) ||
+          m.from.toLowerCase().includes(q) ||
+          m.snippet.toLowerCase().includes(q),
       );
     }
     return e;
   }, [list.data, focus, query]);
+
+  const unreadCount = base.filter((m) => m.unread).length;
+  const othersCount = base.length - unreadCount;
+
+  const emails = useMemo(() => {
+    if (mainTab === "unread") return base.filter((m) => m.unread);
+    if (mainTab === "others") return base.filter((m) => !m.unread);
+    return base;
+  }, [base, mainTab]);
 
   const grouped = useMemo(() => {
     const g: Record<string, EmailSummaryDto[]> = { Today: [], Yesterday: [], Earlier: [] };
     for (const m of emails) g[dayBucket(m.receivedAt)].push(m);
     return g;
   }, [emails]);
-
-  const unreadCount = emails.filter((m) => m.unread).length;
 
   async function sync() {
     toast("Syncing inbox…", "info");
@@ -146,71 +164,130 @@ export default function InboxPage() {
     c: () => setComposing(true),
   });
 
+  const TABS: { key: MainTab; label: string; count?: number }[] = [
+    { key: "all", label: "All mail" },
+    { key: "unread", label: "Unread", count: unreadCount },
+    { key: "others", label: "Others", count: othersCount },
+  ];
+
   return (
     <div className="mx-auto max-w-6xl">
+      {/* greeting header */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h1 className="font-display text-2xl font-bold">Inbox</h1>
-          <span className="text-sm text-muted">{emails.length} emails · {unreadCount} unread</span>
+          <h1 className="font-display text-2xl font-bold">
+            {greeting}
+            {me?.name ? `, ${me.name.split(" ")[0]}` : ""}
+          </h1>
+          <span className="text-sm text-muted">{base.length.toLocaleString()} emails</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative hidden sm:block">
             <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
             <input
               className="input !w-56 pl-9"
-              placeholder="Search mail"
+              placeholder="Search anything…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <button className="btn-ghost !px-3" onClick={() => setFiltersOpen((v) => !v)} aria-label="Filters">
-            <FunnelSimple className="h-4 w-4" />
-          </button>
-          <button className="btn-ghost !px-3" onClick={sync} title="Sync now">
-            ⟳
-          </button>
           <button className="btn-primary" onClick={() => setComposing(true)}>
             <PaperPlaneTilt className="h-4 w-4" weight="fill" /> Compose
           </button>
         </div>
       </header>
 
-      {/* filter tabs (priority) + labels — revealed by the funnel, always visible on lg */}
-      <div className={`mt-4 flex-wrap items-center gap-2 ${filtersOpen ? "flex" : "hidden"} lg:flex`}>
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => {
-              setTab(t.key);
-              setCursor(0);
-            }}
-            className={`chip border ${
-              tab === t.key ? "border-accent/40 bg-accent/15 text-accent" : "border-line bg-surface text-muted hover:text-ink"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-        <span className="mx-1 h-4 w-px bg-line" />
-        {(["client", "invoice", "interview", "project"] as const).map((l) => (
-          <button
-            key={l}
-            onClick={() => setLabel(label === l ? null : l)}
-            className={`chip border ${label === l ? `border-transparent ${LABEL_META[l]}` : "border-line bg-surface text-faint hover:text-ink"}`}
-          >
-            #{l}
-          </button>
-        ))}
+      {/* main tabs + filter toggle */}
+      <div className="mt-5 flex items-center justify-between border-b border-line">
+        <div className="flex items-center gap-1">
+          {TABS.map((t) => {
+            const on = mainTab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => {
+                  setMainTab(t.key);
+                  setCursor(0);
+                }}
+                className={`relative -mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors ${
+                  on ? "border-[rgb(var(--hover))] font-semibold text-ink" : "border-transparent text-muted hover:text-ink"
+                }`}
+              >
+                {t.label}
+                {t.count !== undefined && (
+                  <span
+                    className={`rounded-full px-1.5 text-[10px] font-semibold ${
+                      on ? "bg-[rgb(var(--hover)/0.16)] text-[rgb(var(--hover))]" : "bg-surface-2 text-muted"
+                    }`}
+                  >
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          className={`mb-1 grid h-8 w-8 place-items-center rounded-lg border border-line transition-colors ${
+            filtersOpen || priority || label || followUps ? "text-[rgb(var(--hover))]" : "text-muted hover:text-ink"
+          }`}
+          onClick={() => setFiltersOpen((v) => !v)}
+          aria-label="Filters"
+          title="Filter by label / priority"
+        >
+          <FunnelSimple className="h-4 w-4" />
+        </button>
       </div>
+
+      {/* secondary filters */}
+      {filtersOpen && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setFollowUps((v) => !v);
+              setPriority(null);
+            }}
+            className={`chip border ${followUps ? "border-accent/40 bg-accent/15 text-accent" : "border-line bg-surface text-muted hover:text-ink"}`}
+          >
+            ⏰ Follow-ups
+          </button>
+          <span className="mx-1 h-4 w-px bg-line" />
+          {PRIORITY_FILTERS.map((p) => (
+            <button
+              key={p}
+              onClick={() => {
+                setPriority(priority === p ? null : p);
+                setFollowUps(false);
+              }}
+              className={`chip border ${priority === p ? `border-transparent ${PRIORITY_META[p].cls}` : "border-line bg-surface text-muted hover:text-ink"}`}
+            >
+              {PRIORITY_META[p].label}
+            </button>
+          ))}
+          <span className="mx-1 h-4 w-px bg-line" />
+          {(["client", "invoice", "interview", "project"] as const).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLabel(label === l ? null : l)}
+              className={`chip border ${label === l ? `border-transparent ${LABEL_META[l]}` : "border-line bg-surface text-faint hover:text-ink"}`}
+            >
+              #{l}
+            </button>
+          ))}
+          <button className="btn-ghost !px-3 !py-1 text-xs" onClick={sync} title="Sync now">
+            ⟳ Sync
+          </button>
+        </div>
+      )}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-5">
         {/* list */}
-        <div className="lg:col-span-2">
+        <div className={selected ? "hidden lg:col-span-2 lg:block" : "lg:col-span-2"}>
           <div className="overflow-hidden rounded-2xl border border-line bg-surface">
             {list.loading && <p className="py-10 text-center text-sm text-muted animate-pulse">loading…</p>}
             {!list.loading && emails.length === 0 && (
               <p className="py-10 text-center text-sm text-muted">
-                {tab === "follow-ups" ? "No threads waiting on a reply. ✨" : "Inbox zero in this view."}
+                {followUps ? "No threads waiting on a reply. ✨" : "Nothing here in this view."}
               </p>
             )}
             {(["Today", "Yesterday", "Earlier"] as const).map((bucket) =>
@@ -219,7 +296,7 @@ export default function InboxPage() {
                   <p className="border-b border-line bg-bg/40 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">
                     {bucket}
                   </p>
-                  <ul>
+                  <ul className="divide-y divide-line">
                     {grouped[bucket].map((m) => {
                       const name = senderName(m.from);
                       const on = selected?.id === m.id;
@@ -231,14 +308,14 @@ export default function InboxPage() {
                               setCursor(emails.indexOf(m));
                             }}
                             style={on ? { borderLeftColor: "rgb(var(--hover))" } : undefined}
-                            className={`flex w-full gap-3 border-b border-l-2 border-line px-3.5 py-3 text-left transition-colors ${
-                              on ? "bg-surface-2" : "border-l-transparent hover:bg-surface-2"
+                            className={`flex w-full gap-3 border-l-2 px-3.5 py-3 text-left transition-colors ${
+                              on ? "border-l-[rgb(var(--hover))] bg-surface-2" : "border-l-transparent hover:bg-surface-2"
                             }`}
                           >
                             <Avatar name={name} />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between gap-2">
-                                <span className={`truncate text-sm ${m.unread ? "font-semibold text-ink" : "text-muted"}`}>
+                                <span className={`truncate text-sm ${m.unread ? "font-semibold text-ink" : "text-ink"}`}>
                                   {name}
                                 </span>
                                 <span className="shrink-0 text-[11px] text-faint">{timeAgo(m.receivedAt)}</span>
@@ -247,17 +324,19 @@ export default function InboxPage() {
                                 {m.subject}
                               </p>
                               <p className="truncate text-xs text-faint">{m.snippet}</p>
-                              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                {m.priority && (
-                                  <span className={`chip ${PRIORITY_META[m.priority].cls}`}>
-                                    {PRIORITY_META[m.priority].label}
-                                  </span>
-                                )}
-                                {m.smartLabel && m.smartLabel !== "none" && (
-                                  <span className={`chip ${LABEL_META[m.smartLabel]}`}>#{m.smartLabel}</span>
-                                )}
-                                {m.hasReminder && <span className="chip bg-surface-2 text-muted">⏰</span>}
-                              </div>
+                              {(m.priority || (m.smartLabel && m.smartLabel !== "none") || m.hasReminder) && (
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                  {m.priority && (
+                                    <span className={`chip ${PRIORITY_META[m.priority].cls}`}>
+                                      {PRIORITY_META[m.priority].label}
+                                    </span>
+                                  )}
+                                  {m.smartLabel && m.smartLabel !== "none" && (
+                                    <span className={`chip ${LABEL_META[m.smartLabel]}`}>#{m.smartLabel}</span>
+                                  )}
+                                  {m.hasReminder && <span className="chip bg-surface-2 text-muted">⏰</span>}
+                                </div>
+                              )}
                             </div>
                             {m.unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[rgb(var(--hover))]" />}
                           </button>
@@ -272,7 +351,7 @@ export default function InboxPage() {
         </div>
 
         {/* preview pane */}
-        <div className="lg:col-span-3">
+        <div className={selected ? "lg:col-span-3" : "hidden lg:col-span-3 lg:block"}>
           {selected ? (
             <ThreadPane
               email={selected}
@@ -281,7 +360,7 @@ export default function InboxPage() {
               onChanged={() => list.reload()}
             />
           ) : (
-            <div className="grid h-full min-h-[320px] place-items-center rounded-2xl border border-dashed border-line bg-surface/50 p-10 text-center">
+            <div className="grid h-full min-h-[360px] place-items-center rounded-2xl border border-dashed border-line bg-surface/50 p-10 text-center">
               <div>
                 <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent-soft text-accent">
                   <PaperPlaneTilt className="h-5 w-5" />
@@ -386,17 +465,29 @@ function ThreadPane({
 
   return (
     <div className="card p-5">
-      <div className="flex items-start gap-3">
-        <Avatar name={name} size={40} />
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-lg font-semibold leading-tight">{email.subject}</h2>
-          <p className="mt-0.5 text-xs text-muted">
-            <span className="font-medium text-ink">{name}</span> · {email.from.match(/<(.*)>/)?.[1] ?? email.from}
-          </p>
-        </div>
-        <button className="text-faint hover:text-ink" onClick={onClose} title="Close (u)">
-          <X className="h-4 w-4" />
+      {/* header: back + subject */}
+      <div className="flex items-center gap-2">
+        <button className="grid h-8 w-8 place-items-center rounded-lg text-faint hover:bg-surface-2 hover:text-ink" onClick={onClose} title="Back (u)">
+          <ArrowLeft className="h-4 w-4" />
         </button>
+        <h2 className="min-w-0 flex-1 truncate font-display text-lg font-semibold">{email.subject}</h2>
+      </div>
+
+      {/* sender identity + recipients */}
+      <div className="mt-3 flex items-start gap-3 border-b border-line pb-4">
+        <Avatar name={name} size={40} />
+        <div className="min-w-0 flex-1 text-xs">
+          <p className="text-sm">
+            <span className="font-semibold text-ink">{name}</span>{" "}
+            <span className="text-faint">{senderEmail(email.from)}</span>
+          </p>
+          {email.to.length > 0 && (
+            <p className="mt-0.5 text-muted">
+              To: <span className="text-ink">{email.to.join(", ")}</span>
+            </p>
+          )}
+          <p className="mt-0.5 text-faint">{new Date(email.receivedAt).toLocaleString()}</p>
+        </div>
       </div>
 
       {thread.data?.meetingHint && (
