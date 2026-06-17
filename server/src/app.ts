@@ -19,7 +19,7 @@ import { labelsRouter } from "./modules/labels/labels.routes";
 import { summaryRouter } from "./modules/summary/summary.routes";
 import { aichatRouter } from "./modules/aichat/aichat.routes";
 import { integrationsRouter } from "./modules/integrations/integrations.routes";
-import { webhooksRouter } from "./modules/webhooks/webhooks.routes";
+import { webhooksRouter, webhookStatusRouter } from "./modules/webhooks/webhooks.routes";
 
 /** Express builds the app; node:http owns the listener (see server.ts). */
 export function createApp() {
@@ -62,6 +62,7 @@ export function createApp() {
   api.use("/summary", summaryRouter);
   api.use("/ai-chat", aichatRouter);
   api.use("/integrations", integrationsRouter);
+  api.use("/webhook-status", webhookStatusRouter);
   app.use("/api", api);
 
   app.use((_req, res) =>

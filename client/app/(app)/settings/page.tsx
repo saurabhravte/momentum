@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, ShieldAlert, Save, User, Bell, Plug, LogOut, type LucideIcon } from "lucide-react";
+import { BadgeCheck, ShieldAlert, Save, User, Bell, Plug, LogOut, Webhook, Copy, type LucideIcon } from "lucide-react";
 import { api } from "@/lib/api";
-import { useMe } from "@/lib/hooks";
+import { useMe, useAsync } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { Switch } from "@/components/ui/switch";
 
@@ -29,12 +29,13 @@ type Settings = {
   notificationBundleMinutes: number;
 };
 
-type TabKey = "profile" | "reports" | "verification" | "data" | "session";
+type TabKey = "profile" | "reports" | "verification" | "data" | "webhooks" | "session";
 const TABS: { key: TabKey; label: string; Icon: LucideIcon }[] = [
   { key: "profile", label: "Profile", Icon: User },
   { key: "reports", label: "Reports", Icon: Bell },
   { key: "verification", label: "Verification", Icon: BadgeCheck },
   { key: "data", label: "Connected data", Icon: Plug },
+  { key: "webhooks", label: "Webhooks", Icon: Webhook },
   { key: "session", label: "Sign out", Icon: LogOut },
 ];
 
@@ -279,6 +280,8 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {tab === "webhooks" && <WebhooksPanel />}
+
           {tab === "session" && (
             <div>
               <h2 className="font-display text-base font-semibold text-urgent">Session</h2>
@@ -317,5 +320,82 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-1.5 block text-xs font-medium text-ink-400">{label}</span>
       {children}
     </label>
+  );
+}
+
+function WebhooksPanel() {
+  const { data, loading, error } = useAsync(() => api.webhookStatus());
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const fullUrl = data ? `${origin}${data.endpoint}` : "";
+
+  const PROVIDER_COLOR: Record<string, string> = {
+    gmail: "var(--pop-amber)",
+    googlecalendar: "var(--pop-cyan)",
+    slack: "var(--pop-pink)",
+    github: "var(--hover)",
+  };
+
+  return (
+    <div>
+      <h2 className="font-display text-base font-semibold">Webhooks</h2>
+      <p className="mt-1 text-sm text-muted">
+        Realtime events (new mail, calendar, Slack, GitHub) are pushed to this endpoint instead of polling.
+      </p>
+
+      <div className="mt-5 flex items-center gap-2">
+        <span
+          className={`chip ${data?.configured ? "bg-fyi/15 text-fyi" : "bg-reply/15 text-reply"}`}
+        >
+          {loading ? "checking…" : data?.configured ? "Signing configured" : "Signing secret not set"}
+        </span>
+      </div>
+
+      <label className="mt-4 block text-xs font-medium text-ink-400">Receiver endpoint</label>
+      <div className="mt-1 flex items-center gap-2">
+        <input className="input font-mono text-xs" value={fullUrl} readOnly />
+        <button
+          type="button"
+          className="btn-ghost shrink-0 !px-3"
+          onClick={() => fullUrl && navigator.clipboard?.writeText(fullUrl)}
+          aria-label="Copy endpoint"
+        >
+          <Copy className="h-4 w-4" />
+        </button>
+      </div>
+
+      <h3 className="mt-6 text-sm font-semibold">Recent deliveries</h3>
+      {error ? (
+        <p className="mt-2 text-sm text-urgent">Couldn&apos;t load deliveries — {error}</p>
+      ) : loading ? (
+        <div className="mt-2 space-y-2">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="block h-12 animate-pulse rounded-xl bg-surface-2" />
+          ))}
+        </div>
+      ) : data && data.recent.length > 0 ? (
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {data.recent.map((d) => {
+            const color = PROVIDER_COLOR[d.provider] ?? "var(--accent)";
+            return (
+              <div
+                key={d.id}
+                className="rounded-xl border border-line border-l-4 bg-bg p-3"
+                style={{ borderLeftColor: `rgb(${color})` }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium capitalize">{d.provider}</span>
+                  <span className="font-mono text-[11px] text-faint">
+                    {new Date(d.receivedAt).toLocaleString()}
+                  </span>
+                </div>
+                <p className="mt-0.5 truncate font-mono text-[11px] text-muted">{d.id}</p>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-muted">No deliveries yet. They appear here as events arrive.</p>
+      )}
+    </div>
   );
 }

@@ -51,7 +51,7 @@ export function EmailViewer({ html, text }: { html: string | null; text: string 
       {blockedImages > 0 && !loadImages && (
         <button
           onClick={() => setLoadImages(true)}
-          className="mb-2 rounded-lg border border-ink-700 px-2.5 py-1 text-xs text-ink-300 hover:border-accent/50 hover:text-accent"
+          className="mb-2 rounded-lg border border-ink-700 px-2.5 py-1 text-xs text-ink-300 hover:border-[rgb(var(--hover)/0.6)] hover:text-[rgb(var(--hover))]"
         >
           🖼 {blockedImages} remote image{blockedImages > 1 ? "s" : ""} blocked (tracking protection) — load
         </button>

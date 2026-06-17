@@ -20,6 +20,8 @@
   --faint: 156 150 142;
   /* Bright, engaging accent (ybamm-style lime/chartreuse) for small components. */
   --accent: 132 204 22;
+  /* Bright hover accent (cyan) — used for hover borders/sheens, NOT olive lime. */
+  --hover: 6 182 212;
   --accent-soft: 236 252 203;
 
   --active-bg: 236 252 203;
@@ -85,6 +87,7 @@
   --faint: 102 102 116;
   /* Bright accent that reads on near-black (ybamm-style lime). */
   --accent: 163 230 53;
+  --hover: 34 211 238;
   --accent-soft: 38 46 18;
 
   --active-bg: 38 46 18;
@@ -279,7 +282,7 @@ body {
   }
 
   .btn-ghost:hover {
-    border-color: rgb(var(--accent) / 0.4);
+    border-color: rgb(var(--hover) / 0.5);
     background-color: rgb(var(--surface-2));
   }
 
@@ -514,7 +517,7 @@ body {
 .card-pop:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-soft-lg);
-  border-color: rgb(var(--accent) / 0.45);
+  border-color: rgb(var(--hover) / 0.55);
 }
 
 .card-pop::after {
@@ -523,7 +526,7 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(130deg, rgb(var(--accent) / 0.5), transparent 40%);
+  background: linear-gradient(130deg, rgb(var(--hover) / 0.55), transparent 40%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;

@@ -1,11 +1,14 @@
 import type { Request, Response } from "express";
 import { nanoid } from "nanoid";
+import { desc } from "drizzle-orm";
 import { db, schema } from "../../common/config/db";
 import { dispatchProviderWebhook } from "../../common/config/corsair";
 import { env } from "../../common/config/env";
 import { verifySignature } from "../../common/utils/webhookSignature";
 import { classifyEmail } from "../../common/services/ai/classifier";
 import { embed } from "../../common/services/ai/embeddings";
+import { sendResponse } from "../../common/utils/apiResponse";
+import { asyncHandler } from "../../common/utils/asyncHandler";
 
 /**
  * Realtime via Corsair webhooks: new email / calendar / Slack / GitHub events
@@ -89,3 +92,20 @@ export async function handleCorsairWebhook(req: Request, res: Response) {
 
   res.status(200).json({ success: true, statusCode: 200, message: "Received", data: { received: true } });
 }
+
+/**
+ * Session-authed status for the in-app Webhooks settings tab. Surfaces the
+ * receiver endpoint, whether signing is configured, and recent deliveries.
+ */
+export const webhookStatus = asyncHandler(async (_req: Request, res: Response) => {
+  const recent = await db
+    .select()
+    .from(schema.webhookDeliveries)
+    .orderBy(desc(schema.webhookDeliveries.receivedAt))
+    .limit(10);
+  sendResponse(res, 200, {
+    endpoint: "/api/webhooks/corsair",
+    configured: env.WEBHOOK_SIGNING_SECRET.length > 0,
+    recent: recent.map((r) => ({ id: r.id, provider: r.provider, receivedAt: r.receivedAt.toISOString() })),
+  });
+});

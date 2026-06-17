@@ -28,6 +28,22 @@ const KIND_ICON: Record<CatchUpItem["kind"], string> = {
   calendar: "▦",
 };
 
+const KIND_COLOR: Record<CatchUpItem["kind"], string> = {
+  email: "var(--pop-amber)",
+  slack: "var(--pop-pink)",
+  github_pr: "var(--hover)",
+  github_issue: "var(--pop-blue)",
+  calendar: "var(--accent)",
+};
+
+const KIND_LABEL: Record<CatchUpItem["kind"], string> = {
+  email: "Email",
+  slack: "Slack",
+  github_pr: "Pull requests",
+  github_issue: "Issues",
+  calendar: "Calendar",
+};
+
 export default function CatchUpPage() {
   const [hours, setHours] = useState(12);
 
@@ -126,52 +142,75 @@ export default function CatchUpPage() {
             </div>
           </div>
 
-          {view === "all" && (
-            <ul className="mt-5 space-y-2.5">
-              {items.map((i) => (
-                <li key={i.id} className="card p-4 animate-rise">
-                  <div className="flex items-start gap-3">
-                    <UrgencyDot urgency={i.urgency} />
-                    <span className="text-base leading-none">{KIND_ICON[i.kind]}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <p className="truncate text-sm font-medium text-ink-100">{i.title}</p>
-                        <span className="shrink-0 font-mono text-[11px] text-ink-400">{timeAgo(i.occurredAt)}</span>
+          {view === "all" &&
+            (items.length === 0 ? (
+              <p className="mt-8 py-10 text-center text-sm text-muted">
+                Nothing needs you from this window.{" "}
+                <Link href="/dashboard" className="text-accent hover:underline">
+                  Back to the dashboard →
+                </Link>
+              </p>
+            ) : (
+              <div className="mt-5 space-y-6">
+                {(Object.keys(KIND_LABEL) as CatchUpItem["kind"][]).map((kind) => {
+                  const group = items.filter((i) => i.kind === kind);
+                  if (group.length === 0) return null;
+                  const color = KIND_COLOR[kind];
+                  return (
+                    <section key={kind}>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span
+                          className="grid h-6 w-6 place-items-center rounded-md text-sm"
+                          style={{ background: `rgb(${color} / 0.16)`, color: `rgb(${color})` }}
+                        >
+                          {KIND_ICON[kind]}
+                        </span>
+                        <h3 className="text-sm font-semibold">{KIND_LABEL[kind]}</h3>
+                        <span className="text-xs text-faint">{group.length}</span>
                       </div>
-                      <p className="mt-1 text-sm text-ink-300">{i.summary}</p>
-                      <div className="mt-2.5 flex flex-wrap gap-2">
-                        {i.actions.map((a) => (
-                          <button
-                            key={a}
-                            onClick={() => quickAction(i, a)}
-                            className="rounded-lg border border-ink-700 px-2.5 py-1 text-xs text-ink-200 hover:border-accent/50 hover:text-accent"
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {group.map((i) => (
+                          <div
+                            key={i.id}
+                            className="card-pop animate-rise border-l-4 p-4"
+                            style={{ borderLeftColor: `rgb(${color})`, ["--pop" as string]: color }}
                           >
-                            {a === "reply"
-                              ? "↩ draft reply"
-                              : a === "snooze"
-                                ? "◷ snooze 3h"
-                                : a === "task"
-                                  ? "✓ to task"
-                                  : a === "approve_draft"
-                                    ? "✓ approve"
-                                    : "↗ open"}
-                          </button>
+                            <div className="flex items-baseline justify-between gap-3">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <UrgencyDot urgency={i.urgency} />
+                                <p className="truncate text-sm font-medium text-ink">{i.title}</p>
+                              </div>
+                              <span className="shrink-0 font-mono text-[11px] text-faint">{timeAgo(i.occurredAt)}</span>
+                            </div>
+                            <p className="mt-1 line-clamp-3 text-sm text-muted">{i.summary}</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {i.actions.map((a) => (
+                                <button
+                                  key={a}
+                                  onClick={() => quickAction(i, a)}
+                                  style={{ ["--pop" as string]: color }}
+                                  className="rounded-lg border border-line px-2.5 py-1 text-xs text-ink transition-colors hover:border-[rgb(var(--pop)/0.6)] hover:text-[rgb(var(--pop))]"
+                                >
+                                  {a === "reply"
+                                    ? "↩ draft reply"
+                                    : a === "snooze"
+                                      ? "◷ snooze 3h"
+                                      : a === "task"
+                                        ? "✓ to task"
+                                        : a === "approve_draft"
+                                          ? "✓ approve"
+                                          : "↗ open"}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
-              {items.length === 0 && (
-                <li className="py-10 text-center text-sm text-ink-400">
-                  Nothing needs you from this window.{" "}
-                  <Link href="/dashboard" className="text-accent hover:underline">
-                    Back to the dashboard →
-                  </Link>
-                </li>
-              )}
-            </ul>
-          )}
+                    </section>
+                  );
+                })}
+              </div>
+            ))}
         </>
       )}
 

@@ -153,6 +153,12 @@ export const api = {
     patch<TaskDto>(`/tasks/${id}`, d),
   deleteTask: (id: string) => call<{ deleted: string }>(`/tasks/${id}`, { method: "DELETE" }),
 
+  // webhooks (realtime ingestion status — surfaced in settings)
+  webhookStatus: () =>
+    get<{ endpoint: string; configured: boolean; recent: { id: string; provider: string; receivedAt: string }[] }>(
+      "/webhook-status",
+    ),
+
   // labels (presets + custom)
   labels: () => get<{ id: string; name: string; color: string; isPreset: boolean }[]>("/labels"),
   createLabel: (d: { name: string; color: string }) =>
