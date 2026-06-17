@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/navbar";
 import { Hero } from "@/components/landing/hero";
-import { Features } from "@/components/landing/features";
+
 import { Workflow } from "@/components/landing/workflow";
 import { Pricing } from "@/components/landing/pricing";
 import { Faq } from "@/components/landing/faq";
@@ -12,7 +12,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-bg">
       <Navbar />
       <Hero />
-      <Features />
+
       <Workflow />
       <HowItWorks />
       <Pricing />

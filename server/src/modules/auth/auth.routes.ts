@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { LoginRequest, RegisterRequest } from "./dto/auth.dto";
+import { LoginRequest, RegisterRequest, UpdateProfileRequest } from "./dto/auth.dto";
 import { validateBody } from "../../common/middleware/validate.middleware";
 import { authLimiter } from "../../common/middleware/rateLimit.middleware";
 import { requireAuth } from "./auth.middleware";
@@ -17,5 +17,6 @@ authRouter.get("/google/callback", authController.googleCallback);
 
 authRouter.post("/logout", requireAuth, authController.logout);
 authRouter.get("/me", requireAuth, authController.me);
+authRouter.patch("/me", requireAuth, validateBody(UpdateProfileRequest), authController.updateProfile);
 authRouter.post("/verify/resend", requireAuth, authController.resendVerification);
 authRouter.get("/verify", authController.verifyEmail);

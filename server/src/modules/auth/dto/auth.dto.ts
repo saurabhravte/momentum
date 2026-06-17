@@ -1,1 +1,1 @@
-export { LoginRequest, RegisterRequest } from "@momentum/shared";
+export { LoginRequest, RegisterRequest, UpdateProfileRequest } from "@momentum/shared";

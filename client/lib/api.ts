@@ -54,6 +54,8 @@ const patch = <T>(p: string, data: unknown) => call<T>(p, { method: "PATCH", bod
 export const api = {
   // auth
   me: () => get<MeDto>("/auth/me"),
+  updateProfile: (d: { name?: string; timezone?: string; settings?: Partial<MeDto["settings"]> }) =>
+    patch<MeDto>("/auth/me", d),
   register: (d: { email: string; password: string; name: string }) => post<MeDto>("/auth/register", d),
   login: (d: { email: string; password: string }) => post<MeDto>("/auth/login", d),
   logout: () => post<null>("/auth/logout"),
@@ -72,9 +74,7 @@ export const api = {
   // resync pulls fresh data for an already-connected provider.
   // Gmail re-syncs the inbox cache; others are best-effort no-ops server-side.
   resync: (provider: string) =>
-    provider === "gmail"
-      ? post<{ synced: number }>("/inbox/sync").then(() => null)
-      : Promise.resolve(null),
+    provider === "gmail" ? post<{ synced: number }>("/inbox/sync").then(() => null) : Promise.resolve(null),
 
   // inbox
   syncInbox: () => post<{ synced: number }>("/inbox/sync"),

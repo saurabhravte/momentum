@@ -142,6 +142,46 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Update the signed-in user's profile. Merges `settings` so a partial patch
+ * (e.g. just shutdownRitualHour) never wipes the other preferences. Returns
+ * the fresh MeDto so the client can update its cache in place.
+ */
+export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  const u = req.user!;
+  const { name, timezone, settings } = req.body as {
+    name?: string;
+    timezone?: string;
+    settings?: Partial<typeof u.settings>;
+  };
+
+  const patch: Record<string, unknown> = {};
+  if (typeof name === "string") patch.name = name;
+  if (typeof timezone === "string") patch.timezone = timezone;
+  if (settings && typeof settings === "object") {
+    patch.settings = { ...u.settings, ...settings };
+  }
+
+  if (Object.keys(patch).length > 0) {
+    await db.update(schema.users).set(patch).where(eq(schema.users.id, u.id));
+  }
+
+  const merged = { ...u, ...patch, settings: (patch.settings as typeof u.settings) ?? u.settings };
+  sendResponse(
+    res,
+    200,
+    {
+      id: merged.id,
+      email: merged.email,
+      emailVerified: merged.emailVerified,
+      name: merged.name,
+      timezone: merged.timezone,
+      settings: merged.settings,
+    },
+    "Profile updated",
+  );
+});
+
 // Email Verification
 export const resendVerification = asyncHandler(async (req: Request, res: Response) => {
   const u = req.user!;

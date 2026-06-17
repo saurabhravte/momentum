@@ -63,7 +63,7 @@ export function useCelebrate(): [boolean, () => void] {
   const fire = useCallback(() => {
     setShow(true);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setShow(false), 1500);
+    timer.current = setTimeout(() => setShow(false), 2600);
   }, []);
   return [show, fire];
 }

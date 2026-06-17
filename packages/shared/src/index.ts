@@ -202,6 +202,21 @@ export const MeDto = z.object({
 });
 export type MeDto = z.infer<typeof MeDto>;
 
+// Profile update — every field optional so the client can PATCH just what changed.
+export const UpdateProfileRequest = z.object({
+  name: z.string().min(1).max(120).optional(),
+  timezone: z.string().min(1).max(64).optional(), // IANA
+  settings: z
+    .object({
+      weeklySummary: z.boolean(),
+      shutdownRitualHour: z.number().min(0).max(23),
+      notificationBundleMinutes: z.number().min(0).max(1440),
+    })
+    .partial()
+    .optional(),
+});
+export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequest>;
+
 //  API enve
 export type ApiOk<T> = { success: true; statusCode: number; message: string; data: T };
 export type ApiErr = {
