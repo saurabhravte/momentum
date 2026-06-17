@@ -4,14 +4,14 @@ import { motion } from "framer-motion";
 import { Inbox, Sparkles, ShieldCheck, ArrowRight } from "lucide-react";
 
 /**
- * Corporate-facing "how the workflow runs" section. Replaces the decorative
- * bento with concrete value: what comes in, what Momentum does, what the
- * person stays in control of. Three columns map to a real before → during →
- * after flow that a busy operator recognises instantly.
+ * "How the workflow runs" — three columns mapping a before → during → after
+ * flow. Each stage now carries its own bright --pop-* colour so the section
+ * reads as lively and interactive while the lime --accent stays the brand.
  */
 const STAGES = [
   {
     icon: Inbox,
+    pop: "pop-blue",
     tag: "Everything lands here",
     title: "One stream, not four tabs",
     body: "Gmail, Calendar, Slack and GitHub flow into a single prioritised feed. No more tab-switching tax across the day.",
@@ -19,6 +19,7 @@ const STAGES = [
   },
   {
     icon: Sparkles,
+    pop: "pop-violet",
     tag: "Momentum does the legwork",
     title: "Drafts, briefs & catch-ups",
     body: "Pre-meeting briefs, reply drafts, and a one-tap daily catch-up are prepared for you — so you start from 80%, not zero.",
@@ -26,6 +27,7 @@ const STAGES = [
   },
   {
     icon: ShieldCheck,
+    pop: "pop-cyan",
     tag: "You stay in control",
     title: "Reads everything, sends nothing alone",
     body: "Every outbound action waits in a review queue. Approve, edit, or undo — nothing leaves without your explicit nod.",
@@ -54,25 +56,29 @@ export function Workflow() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.35, delay: i * 0.08 }}
-            className="card relative flex flex-col p-6"
+            className="card-pop group relative flex flex-col p-6"
+            style={{ ["--pop" as string]: `var(--${s.pop})` }}
           >
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent">
+              <span
+                className="grid h-10 w-10 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-110"
+                style={{ background: "rgb(var(--pop) / 0.14)", color: "rgb(var(--pop))" }}
+              >
                 <s.icon className="h-5 w-5" />
               </span>
-              <span className="text-xs font-medium uppercase tracking-wide text-faint">
-                Step {i + 1}
-              </span>
+              <span className="text-xs font-medium uppercase tracking-wide text-faint">Step {i + 1}</span>
             </div>
 
-            <p className="mt-4 text-[11px] font-semibold uppercase tracking-wider text-accent">{s.tag}</p>
+            <p className="mt-4 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "rgb(var(--pop))" }}>
+              {s.tag}
+            </p>
             <h3 className="mt-1 font-display text-lg font-semibold">{s.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">{s.body}</p>
 
             <ul className="mt-4 space-y-2 border-t border-line pt-4">
               {s.points.map((p) => (
                 <li key={p} className="flex items-center gap-2 text-sm text-ink">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "rgb(var(--pop))" }} />
                   {p}
                 </li>
               ))}
