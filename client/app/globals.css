@@ -547,3 +547,124 @@ body {
     animation: none !important;
   }
 }
+/* ===============================================================
+   MOMENTUM — colour vocabulary (append to the END of globals.css)
+   ---------------------------------------------------------------
+   The whole "clean + vibrant" rule in one place: colour is allowed
+   to mean exactly TWO things in this app. Nothing else gets colour.
+
+     1. WHICH APP a thing came from      → source identity
+     2. HOW URGENT / what KIND it is      → priority
+
+   Everything else stays --ink / --surface / --line. That single
+   constraint is what makes the result read as "designed" instead
+   of "rainbow". Triplets are consumed as rgb(var(--token) / alpha),
+   exactly like your existing tokens. Light + dark each get a tuned
+   value so chips stay vibrant on cream AND readable on near-black.
+
+   Tailwind v4 merges multiple @theme / :root blocks, so this is
+   purely additive — it does not touch or break anything above.
+   =============================================================== */
+
+/* ---- 1. SOURCE IDENTITY ------------------------------------- */
+:root {
+  --src-gmail: 219 68 55;     /* Gmail red    */
+  --src-slack: 15 110 86;     /* Slack teal   */
+  --src-github: 82 74 183;    /* GitHub indigo */
+  --src-calendar: 24 95 165;  /* Calendar blue */
+}
+.dark {
+  --src-gmail: 248 113 113;
+  --src-slack: 52 211 153;
+  --src-github: 165 158 255;
+  --src-calendar: 96 165 250;
+}
+
+/* ---- 2. PRIORITY (canonical mapping) ------------------------
+   You already define --urgent / --reply / --waiting / --fyi / --news
+   up top. We DON'T redefine the colours here — we just give them one
+   canonical set of helper classes so every surface maps a priority to
+   the same colour. (Right now inbox/page.tsx maps needs_reply→--hover,
+   waiting→--pop-amber, etc. — replace that ad-hoc PRIORITY_BAR object
+   with the .pri-* classes below so there is ONE source of truth.)
+   ------------------------------------------------------------- */
+
+@layer components {
+
+  /* ----- source chips: bright tint + same-hue text -----
+     usage:  <span class="chip-src src-gmail"><i …/> Gmail</span>   */
+  .chip-src {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 9999px;
+    padding: 0.1rem 0.55rem;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    background: rgb(var(--c) / 0.14);
+    color: rgb(var(--c));
+  }
+
+  .src-gmail    { --c: var(--src-gmail); }
+  .src-slack    { --c: var(--src-slack); }
+  .src-github   { --c: var(--src-github); }
+  .src-calendar { --c: var(--src-calendar); }
+
+  /* ----- coloured initials / avatar bubble -----
+     usage:  <span class="avatar-src src-gmail" style="width:38px;height:38px">RK</span>
+     (replaces the random AVATAR_COLORS hash in inbox/page.tsx —
+      now the avatar colour tells you the SOURCE, not noise) */
+  .avatar-src {
+    display: grid;
+    place-items: center;
+    border-radius: 9999px;
+    background: rgb(var(--c) / 0.16);
+    color: rgb(var(--c));
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* ----- the 3px left accent bar on a list row -----
+     set --c with a .src-* OR .pri-* modifier on the same element:
+       <li class="row-accent pri-urgent"> … </li>            */
+  .row-accent {
+    border-left: 3px solid rgb(var(--c));
+  }
+
+  /* ----- priority chips + bars (canonical) ----- */
+  .pri-urgent  { --c: var(--urgent); }
+  .pri-reply   { --c: var(--reply); }   /* needs_reply */
+  .pri-waiting { --c: var(--waiting); }
+  .pri-fyi     { --c: var(--fyi); }
+  .pri-news    { --c: var(--news); }    /* newsletter  */
+
+  .chip-pri {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgb(var(--c) / 0.14);
+    color: rgb(var(--c));
+  }
+
+  /* tiny status dot — for sidebars / compact rows */
+  .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: rgb(var(--c));
+  }
+}
+
+/* ---- 3. ONE place to tweak vibrancy -------------------------
+   If light mode ever feels too muted vs the request, bump ONLY the
+   :root priority triplets above this file (the --urgent/--reply/…
+   defined at the top of globals.css) — every chip, bar and dot
+   updates at once because they all read through the .pri-* classes.
+   Don't add new colours; turn the existing ones up.
+   ------------------------------------------------------------- */
