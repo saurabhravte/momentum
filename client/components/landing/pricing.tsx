@@ -114,14 +114,19 @@ export function Pricing() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {plans.map((p) => {
+        {plans.map((p, i) => {
+          const pop = ["pop-cyan", "accent", "pop-amber"][i % 3];
           const price = cycle === "annual" ? Math.round(p.monthly * (1 - annualDiscount)) : p.monthly;
           return (
             <div
               key={p.name}
+              style={{
+                ["--pop" as string]: `var(--${pop})`,
+                borderColor: p.highlight ? "rgb(var(--pop))" : "rgb(var(--pop) / 0.4)",
+              }}
               className={cn(
-                "relative flex flex-col rounded-3xl border p-6 transition-shadow",
-                p.highlight ? "border-accent/50 bg-surface shadow-soft-lg" : "border-line bg-surface",
+                "relative flex flex-col rounded-3xl border bg-surface p-6 transition-shadow",
+                p.highlight && "shadow-soft-lg",
               )}
             >
               {p.highlight && (

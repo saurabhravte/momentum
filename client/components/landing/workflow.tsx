@@ -19,7 +19,7 @@ const STAGES = [
   },
   {
     icon: Sparkles,
-    pop: "pop-violet",
+    pop: "pop-blue",
     tag: "Momentum does the legwork",
     title: "Drafts, briefs & catch-ups",
     body: "Pre-meeting briefs, reply drafts, and a one-tap daily catch-up are prepared for you — so you start from 80%, not zero.",

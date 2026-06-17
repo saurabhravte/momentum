@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,8 +23,10 @@ const registerSchema = baseSchema.extend({
 });
 type Creds = z.infer<typeof baseSchema>;
 
-export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const initialMode = searchParams.get("mode") === "register" ? "register" : "login";
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
   const router = useRouter();
   const toast = useToast();
   const {
@@ -142,5 +144,13 @@ export default function LoginPage() {
         </button>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="grid min-h-screen place-items-center bg-bg" />}>
+      <LoginForm />
+    </Suspense>
   );
 }

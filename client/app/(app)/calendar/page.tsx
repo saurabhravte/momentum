@@ -1,108 +1,159 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { CaretLeft, CaretRight, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import type { EventDto } from "@momentum/shared";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { fmtDay, fmtTime } from "@/lib/format";
 
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const sameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
 export default function CalendarPage() {
-  const events = useAsync(() => api.events());
-  const toast = useToast();
+  const [cursor, setCursor] = useState(() => {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), 1);
+  });
+  const [query, setQuery] = useState("");
   const [briefFor, setBriefFor] = useState<EventDto | null>(null);
   const [creating, setCreating] = useState(false);
+  const toast = useToast();
 
-  // group by day
-  const byDay = new Map<string, EventDto[]>();
-  for (const e of events.data ?? []) {
-    const k = new Date(e.start).toDateString();
-    byDay.set(k, [...(byDay.get(k) ?? []), e]);
-  }
-  const days = [...byDay.entries()].sort((a, b) => +new Date(a[0]) - +new Date(b[0]));
-  const conflicts = (events.data ?? []).filter((e) => e.conflict).length;
+  // Build a 6-week grid starting on the Sunday on/before the 1st.
+  const gridStart = useMemo(() => {
+    const first = new Date(cursor);
+    const d = new Date(first);
+    d.setDate(first.getDate() - first.getDay());
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [cursor]);
+  const cells = useMemo(
+    () => Array.from({ length: 42 }, (_, i) => new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i)),
+    [gridStart],
+  );
+  const gridEnd = cells[41];
 
-  async function shareAvailability() {
-    try {
-      const { text } = await api.availability();
-      await navigator.clipboard.writeText(text);
-      toast("Free slots copied — paste into any reply (Calendly-without-Calendly)", "success");
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Could not compute availability", "error");
-    }
-  }
+  // Fetch events for the visible range (already proxies Google Calendar server-side).
+  const events = useAsync(
+    () => api.events({ from: gridStart.toISOString(), to: new Date(gridEnd.getTime() + 86_400_000).toISOString() }),
+    [gridStart.getTime()],
+  );
+
+  const filtered = (events.data ?? []).filter((e) =>
+    query.trim() ? e.title.toLowerCase().includes(query.trim().toLowerCase()) : true,
+  );
+  const eventsFor = (day: Date) =>
+    filtered
+      .filter((e) => sameDay(new Date(e.start), day))
+      .sort((a, b) => +new Date(a.start) - +new Date(b.start));
+
+  const today = new Date();
+  const monthLabel = cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const shift = (n: number) => setCursor((c) => new Date(c.getFullYear(), c.getMonth() + n, 1));
+  const goToday = () => {
+    const n = new Date();
+    setCursor(new Date(n.getFullYear(), n.getMonth(), 1));
+  };
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Calendar</h1>
-          {conflicts > 0 ? (
-            <p className="mt-1 text-sm text-urgent">
-              ⚠ {conflicts} double-booked slot{conflicts > 1 ? "s" : ""} detected
-            </p>
-          ) : (
-            <p className="mt-1 text-sm text-ink-400">No conflicts — your week is clean.</p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <button className="btn-ghost" onClick={shareAvailability}>
-            ⧉ Share my availability
+        <div className="flex items-center gap-2">
+          <button className="rounded-lg border border-line p-2 hover:bg-surface-2" onClick={() => shift(-1)} aria-label="Previous month">
+            <CaretLeft className="h-4 w-4" />
           </button>
+          <button className="rounded-lg border border-line p-2 hover:bg-surface-2" onClick={() => shift(1)} aria-label="Next month">
+            <CaretRight className="h-4 w-4" />
+          </button>
+          <button className="btn-ghost !px-3 !py-1.5 text-sm" onClick={goToday}>
+            Today
+          </button>
+          <h1 className="ml-2 font-display text-xl font-bold">{monthLabel}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+            <input
+              className="input !w-56 pl-9"
+              placeholder="Search events"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
           <button className="btn-primary" onClick={() => setCreating(true)}>
-            + New event
+            <Plus className="h-4 w-4" weight="bold" /> New Event
           </button>
         </div>
       </header>
 
-      <div className="mt-6 space-y-6">
-        {events.loading && <p className="text-sm text-ink-400 animate-pulse-soft">loading events…</p>}
-        {!events.loading && days.length === 0 && (
-          <p className="py-10 text-center text-sm text-ink-400">
-            No upcoming events. Connect Google Calendar or create one.
-          </p>
-        )}
-        {days.map(([day, list]) => (
-          <section key={day}>
-            <h2 className="font-display text-sm font-semibold text-accent">{fmtDay(list[0].start)}</h2>
-            <ul className="mt-2 space-y-2">
-              {list
-                .sort((a, b) => +new Date(a.start) - +new Date(b.start))
-                .map((e) => (
-                  <li key={e.id} className={`card flex items-center gap-4 p-4 ${e.conflict ? "border-urgent/40" : ""}`}>
-                    <div className="w-24 shrink-0 font-mono text-xs text-ink-300">
-                      {fmtTime(e.start)}
-                      <span className="text-ink-500"> – {fmtTime(e.end)}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-ink-100">{e.title}</p>
-                      {e.attendees.length > 0 && (
-                        <p className="truncate text-xs text-ink-400">
-                          {e.attendees.slice(0, 4).join(", ")}
-                          {e.attendees.length > 4 ? ` +${e.attendees.length - 4}` : ""}
-                        </p>
-                      )}
-                    </div>
-                    {e.conflict && <span className="chip bg-urgent/15 text-urgent">conflict</span>}
-                    {e.meetLink && (
-                      <a
-                        href={e.meetLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="chip bg-fyi/15 text-fyi hover:underline"
-                      >
-                        join
-                      </a>
-                    )}
-                    <button className="btn-ghost !px-3 !py-1.5 text-xs" onClick={() => setBriefFor(e)}>
-                      📋 Brief
+      {events.loading && <p className="mt-4 animate-pulse text-sm text-muted">loading events…</p>}
+
+      {/* Month grid */}
+      <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-surface">
+        <div className="grid grid-cols-7 border-b border-line">
+          {WEEKDAYS.map((d) => (
+            <div key={d} className="px-3 py-2 text-center text-xs font-medium text-muted">
+              {d}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {cells.map((day, i) => {
+            const inMonth = day.getMonth() === cursor.getMonth();
+            const isToday = sameDay(day, today);
+            const dayEvents = eventsFor(day);
+            return (
+              <div
+                key={i}
+                className={`min-h-[112px] border-b border-r border-line p-1.5 ${i % 7 === 6 ? "border-r-0" : ""} ${
+                  inMonth ? "bg-surface" : "bg-bg/40"
+                }`}
+              >
+                <div className="flex justify-start">
+                  <span
+                    className={`grid h-6 min-w-6 place-items-center rounded-full px-1 text-xs ${
+                      isToday
+                        ? "bg-ink font-semibold text-bg"
+                        : inMonth
+                          ? "text-ink"
+                          : "text-faint"
+                    }`}
+                  >
+                    {day.getDate()}
+                  </span>
+                </div>
+                <div className="mt-1 space-y-1">
+                  {dayEvents.slice(0, 3).map((e) => (
+                    <button
+                      key={e.id}
+                      onClick={() => setBriefFor(e)}
+                      title={e.title}
+                      className={`flex w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-left text-[11px] transition-colors hover:brightness-95 ${
+                        e.conflict ? "bg-urgent/15 text-urgent" : "bg-accent/15 text-ink"
+                      }`}
+                    >
+                      <span className="shrink-0 font-mono text-[10px] text-muted">{fmtTime(e.start)}</span>
+                      <span className="truncate">{e.title}</span>
                     </button>
-                  </li>
-                ))}
-            </ul>
-          </section>
-        ))}
+                  ))}
+                  {dayEvents.length > 3 && (
+                    <span className="block px-1.5 text-[10px] text-muted">+{dayEvents.length - 3} more</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      {!events.loading && filtered.length === 0 && (
+        <p className="mt-4 text-center text-sm text-muted">
+          No events this month. Connect Google Calendar or create one.
+        </p>
+      )}
 
       {briefFor && <BriefModal event={briefFor} onClose={() => setBriefFor(null)} />}
       {creating && (

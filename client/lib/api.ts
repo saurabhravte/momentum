@@ -151,6 +151,7 @@ export const api = {
   updateTask: (id: string, status: "todo" | "doing" | "done") => patch<TaskDto>(`/tasks/${id}`, { status }),
   editTask: (id: string, d: { title?: string; due?: string | null; labelIds?: string[] }) =>
     patch<TaskDto>(`/tasks/${id}`, d),
+  deleteTask: (id: string) => call<{ deleted: string }>(`/tasks/${id}`, { method: "DELETE" }),
 
   // labels (presets + custom)
   labels: () => get<{ id: string; name: string; color: string; isPreset: boolean }[]>("/labels"),

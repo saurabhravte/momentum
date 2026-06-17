@@ -6,6 +6,7 @@ import { Pricing } from "@/components/landing/pricing";
 import { Faq } from "@/components/landing/faq";
 import { Footer } from "@/components/landing/footer";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { Features } from "@/components/landing/features";
 
 export default function HomePage() {
   return (
@@ -14,6 +15,7 @@ export default function HomePage() {
       <Hero />
 
       <Workflow />
+      <Features />
       <HowItWorks />
       <Pricing />
       <Faq />

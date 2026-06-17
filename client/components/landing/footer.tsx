@@ -38,7 +38,7 @@ export function Footer() {
             </span>
             Momentum
           </Link>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-muted">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/60 bg-accent-soft px-2.5 py-0.5 text-[11px] font-semibold text-accent">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             v1.0 — stable
           </span>

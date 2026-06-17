@@ -14,7 +14,7 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
-import { Check, Pencil, GripVertical } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { TaskDto } from "@momentum/shared";
 import { Celebrate, useCelebrate } from "@/components/tasks/celebrate";
 import { cn } from "@/lib/utils";
@@ -41,14 +41,20 @@ function Card({
   onEdit,
   editing,
   onSave,
+  onDelete,
 }: {
   task: TaskDto;
   onEdit: (id: string | null) => void;
   editing: boolean;
   onSave: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   const [draft, setDraft] = useState(task.title);
+
+  // Drag-anywhere: spread drag listeners on the whole card, but disable them
+  // while inline-editing so the text field stays usable.
+  const dragProps = editing ? {} : { ...attributes, ...listeners };
 
   return (
     <li
@@ -56,18 +62,12 @@ function Card({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
         "group rounded-xl border border-line bg-bg p-3 shadow-soft",
+        !editing && "cursor-grab active:cursor-grabbing",
         isDragging && "opacity-50",
       )}
+      {...dragProps}
     >
       <div className="flex items-start gap-2">
-        <button
-          {...attributes}
-          {...listeners}
-          className="mt-0.5 cursor-grab text-faint opacity-0 transition group-hover:opacity-100"
-          aria-label="Drag task"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
         <span title={task.source} className="text-sm">
           {SOURCE_ICON[task.source]}
         </span>
@@ -89,21 +89,32 @@ function Card({
         )}
 
         {!editing && (
-          <button
-            onClick={() => {
-              setDraft(task.title);
-              onEdit(task.id);
-            }}
-            className="opacity-0 transition group-hover:opacity-100"
-            aria-label="Edit task"
-          >
-            <Pencil className="h-3.5 w-3.5 text-faint hover:text-ink" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => {
+                setDraft(task.title);
+                onEdit(task.id);
+              }}
+              className="rounded p-0.5 hover:bg-surface-2"
+              aria-label="Edit task"
+            >
+              <Pencil className="h-3.5 w-3.5 text-faint hover:text-ink" />
+            </button>
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => onDelete(task.id)}
+              className="rounded p-0.5 hover:bg-[rgb(var(--urgent)/0.12)]"
+              aria-label="Delete task"
+            >
+              <Trash2 className="h-3.5 w-3.5 text-faint hover:text-[rgb(var(--urgent))]" />
+            </button>
+          </div>
         )}
       </div>
 
       {task.due && (
-        <p className="mt-2 pl-6 font-mono text-[10px] text-faint">due {new Date(task.due).toLocaleDateString()}</p>
+        <p className="mt-2 font-mono text-[10px] text-faint">due {new Date(task.due).toLocaleDateString()}</p>
       )}
     </li>
   );
@@ -115,12 +126,14 @@ function Column({
   onEdit,
   editingId,
   onSave,
+  onDelete,
 }: {
   col: (typeof COLUMNS)[number];
   tasks: TaskDto[];
   onEdit: (id: string | null) => void;
   editingId: string | null;
   onSave: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
   return (
@@ -137,7 +150,7 @@ function Column({
           )}
         >
           {tasks.map((t) => (
-            <Card key={t.id} task={t} onEdit={onEdit} editing={editingId === t.id} onSave={onSave} />
+            <Card key={t.id} task={t} onEdit={onEdit} editing={editingId === t.id} onSave={onSave} onDelete={onDelete} />
           ))}
           {tasks.length === 0 && <li className="py-6 text-center text-xs text-faint">drop here</li>}
         </ul>
@@ -159,10 +172,12 @@ export function TaskBoard({
   tasks,
   onStatusChange,
   onTitleChange,
+  onDelete,
 }: {
   tasks: TaskDto[];
   onStatusChange: (id: string, status: Status) => void;
   onTitleChange: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -212,10 +227,11 @@ export function TaskBoard({
               onEdit={setEditingId}
               editingId={editingId}
               onSave={save}
+              onDelete={onDelete}
             />
           ))}
         </div>
-        <DragOverlay>
+        <DragOverlay dropAnimation={{ duration: 450, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
           {active && (
             <div className="rounded-xl border border-line bg-bg p-3 shadow-soft-lg">
               <p className="text-sm text-ink">{active.title}</p>

@@ -20,7 +20,7 @@ const FEATURES = [
     title: "Action command bar",
     body: '⌘K acts across every tool. "Reschedule my 3pm and tell Raj." Every write lands as a proposal you approve.',
     span: "",
-    pop: "pop-violet",
+    pop: "pop-blue",
   },
   {
     icon: Inbox,

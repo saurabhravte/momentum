@@ -92,3 +92,13 @@ export const taskStats = asyncHandler(async (req: Request, res: Response) => {
 export const activity = asyncHandler(async (req: Request, res: Response) => {
   sendResponse(res, 200, await listActivity(req.user!.id));
 });
+
+/** Permanently delete a task the user owns. */
+export const deleteTask = asyncHandler(async (req: Request, res: Response) => {
+  const deleted = await db
+    .delete(schema.tasks)
+    .where(and(eq(schema.tasks.id, reqParam(req, "id")), eq(schema.tasks.userId, req.user!.id)))
+    .returning({ id: schema.tasks.id });
+  if (!deleted.length) throw ApiError.notFound("Task not found");
+  sendResponse(res, 200, { deleted: deleted[0].id });
+});

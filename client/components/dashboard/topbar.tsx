@@ -37,7 +37,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
     } catch {
       /* ignore */
     }
-    router.replace("/login");
+    router.replace("/");
   }
 
   return (

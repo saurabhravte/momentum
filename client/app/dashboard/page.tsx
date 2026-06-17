@@ -5,27 +5,13 @@ import Link from "next/link";
 import { BentoCard } from "@/components/dashboard/bento-card";
 import { ProgressChart, type ProgressPoint } from "@/components/dashboard/progress-chart";
 import { SummaryCard } from "@/components/dashboard/summary-card";
-import { StatusBadge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
+import { useAsync } from "@/lib/hooks";
 import { useFetch } from "@/lib/use-fetch";
+import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-/* ---- Backend contract (adjust paths/fields to match your server) ----
-   GET /api/connections  -> { providers: { gmail, googlecalendar, slack, github } }
-   GET /api/dashboard/overview -> { unread, meetingsToday, openTasks }
-   GET /api/activity?limit=5   -> { items: [{ id, level, title, message }] }
-------------------------------------------------------------------------- */
-const ENDPOINTS = {
-  connections: "/api/connections",
-  overview: "/api/dashboard/overview",
-  activity: "/api/activity?limit=5",
-};
-
-type Providers = Record<"gmail" | "googlecalendar" | "slack" | "github", boolean>;
-type Overview = { unread: number; meetingsToday: number; openTasks: number };
-type Activity = {
-  items: { id: string; level: "success" | "warning" | "error" | "neutral"; title: string; message: string }[];
-};
+type ProviderKey = "gmail" | "googlecalendar" | "slack" | "github";
 
 const SlackIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
@@ -40,15 +26,15 @@ const GithubIcon = ({ className }: { className?: string }) => (
 );
 
 const TOOLS: {
-  key: keyof Providers;
+  key: ProviderKey;
   name: string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
 }[] = [
   { key: "gmail", name: "Gmail", icon: Mail, color: "#EA4335" },
   { key: "googlecalendar", name: "Calendar", icon: Calendar, color: "#1A73E8" },
-  { key: "slack", name: "Slack", icon: SlackIcon, color: "#611F69" },
-  { key: "github", name: "GitHub", icon: GithubIcon, color: "#24292F" },
+  { key: "slack", name: "Slack", icon: SlackIcon, color: "#E01E5A" },
+  { key: "github", name: "GitHub", icon: GithubIcon, color: "#2D2D32" },
 ];
 
 function Stat({
@@ -77,36 +63,51 @@ function Stat({
   );
 }
 
+function isToday(iso: string) {
+  const d = new Date(iso);
+  const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+
 export default function DashboardPage() {
-  const conn = useFetch<Providers>(ENDPOINTS.connections);
-  const overview = useFetch<Overview>(ENDPOINTS.overview);
-  const activity = useFetch<Activity>(ENDPOINTS.activity);
+  // All wired to the REAL typed API (previous /api/dashboard/overview and
+  // /api/activity endpoints never existed, and /api/connections returns an
+  // array — which is why tools + activity looked static/broken).
+  const conns = useAsync(() => api.connections());
+  const tasks = useAsync(() => api.tasks());
+  const inbox = useAsync(() => api.inbox());
+  const events = useAsync(() => api.events());
+  const activity = useAsync(() => api.activity());
   const stats = useFetch<{ series: ProgressPoint[] }>("/api/tasks/stats?days=14");
 
-  const providers = conn.data;
-  const connectedCount = providers ? Object.values(providers).filter(Boolean).length : 0;
+  const connList = conns.data ?? [];
+  const isConnected = (key: ProviderKey) => connList.some((c) => c.provider === key && c.status === "connected");
+  const connectedCount = TOOLS.filter((t) => isConnected(t.key)).length;
   const hasAnyConnection = connectedCount > 0;
+
+  const unread = inbox.data ? inbox.data.filter((e) => e.unread).length : undefined;
+  const meetingsToday = events.data ? events.data.filter((e) => isToday(e.start)).length : undefined;
+  const openTasks = tasks.data ? tasks.data.filter((t) => t.status !== "done").length : undefined;
 
   async function toggleTool(key: string, currentlyOn: boolean) {
     try {
       if (currentlyOn) {
-        await api.disconnect(key);
-        conn.reload();
+        await api.resync(key);
+        conns.reload();
       } else {
         const res = await api.connect(key);
-        // OAuth providers (gmail/calendar) redirect to consent; key providers need the modal.
         if (res.redirectUrl) window.location.href = res.redirectUrl;
         else window.location.href = `/connections?focus=${key}`;
       }
     } catch {
-      conn.reload();
+      conns.reload();
     }
   }
 
   return (
     <div className="space-y-4">
       {/* Empty state — only when we know nothing is connected */}
-      {!conn.loading && !conn.error && !hasAnyConnection && (
+      {!conns.loading && !conns.error && !hasAnyConnection && (
         <BentoCard className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-lg bg-surface-2 text-ink">
@@ -123,22 +124,17 @@ export default function DashboardPage() {
         </BentoCard>
       )}
 
-      {/* Stat row — dynamic counts */}
+      {/* Stat row — derived from real data */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat
           icon={Plug}
           label="Connected tools"
-          value={hasAnyConnection ? connectedCount : undefined}
-          loading={conn.loading}
+          value={connectedCount}
+          loading={conns.loading}
         />
-        <Stat icon={Inbox} label="Unread" value={overview.data?.unread} loading={overview.loading} />
-        <Stat
-          icon={CalendarClock}
-          label="Meetings today"
-          value={overview.data?.meetingsToday}
-          loading={overview.loading}
-        />
-        <Stat icon={CheckSquare} label="Open tasks" value={overview.data?.openTasks} loading={overview.loading} />
+        <Stat icon={Inbox} label="Unread" value={unread} loading={inbox.loading} />
+        <Stat icon={CalendarClock} label="Meetings today" value={meetingsToday} loading={events.loading} />
+        <Stat icon={CheckSquare} label="Open tasks" value={openTasks} loading={tasks.loading} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -151,12 +147,12 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          {conn.error ? (
-            <ErrorRow message={conn.error} onRetry={conn.reload} />
+          {conns.error ? (
+            <ErrorRow message={conns.error} onRetry={conns.reload} />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {TOOLS.map((t) => {
-                const isOn = Boolean(providers?.[t.key]);
+                const isOn = isConnected(t.key);
                 return (
                   <div key={t.key} className="flex flex-col items-start gap-3 rounded-lg border border-line bg-bg p-3">
                     <div className="flex w-full items-start justify-between">
@@ -165,7 +161,7 @@ export default function DashboardPage() {
                       </span>
                       <button
                         type="button"
-                        disabled={conn.loading}
+                        disabled={conns.loading}
                         onClick={() => toggleTool(t.key, isOn)}
                         className={cn(
                           "rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
@@ -174,17 +170,17 @@ export default function DashboardPage() {
                             : "bg-accent text-bg hover:opacity-90",
                         )}
                       >
-                        {conn.loading ? "…" : isOn ? "Resync" : "Connect"}
+                        {conns.loading ? "…" : isOn ? "Resync" : "Connect"}
                       </button>
                     </div>
                     <div>
                       <p className="text-sm font-medium">{t.name}</p>
                       <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                         <span
-                          className={cn("h-1.5 w-1.5 rounded-full", conn.loading && "animate-pulse")}
+                          className={cn("h-1.5 w-1.5 rounded-full", conns.loading && "animate-pulse")}
                           style={{ background: isOn ? t.color : "rgb(var(--faint))" }}
                         />
-                        {conn.loading ? "Checking" : isOn ? "Connected" : "Not connected"}
+                        {conns.loading ? "Checking" : isOn ? "Connected" : "Not connected"}
                       </span>
                     </div>
                   </div>
@@ -194,7 +190,7 @@ export default function DashboardPage() {
           )}
         </BentoCard>
 
-        {/* Activity — dynamic, with bright pills as the only color */}
+        {/* Recent activity — real /api/tasks/activity */}
         <BentoCard>
           <h2 className="mb-4 font-medium">Recent activity</h2>
           {activity.error ? (
@@ -202,17 +198,19 @@ export default function DashboardPage() {
           ) : activity.loading ? (
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
-                <span key={i} className="block h-8 animate-pulse rounded-full bg-surface-2" />
+                <span key={i} className="block h-8 animate-pulse rounded-lg bg-surface-2" />
               ))}
             </div>
-          ) : activity.data && activity.data.items.length > 0 ? (
-            <div className="space-y-2.5">
-              {activity.data.items.map((a) => (
-                <StatusBadge key={a.id} variant={a.level} label={a.title} withArrow={false}>
-                  {a.message}
-                </StatusBadge>
+          ) : activity.data && activity.data.length > 0 ? (
+            <ul className="space-y-2.5">
+              {activity.data.slice(0, 6).map((a) => (
+                <li key={a.id} className="flex items-baseline gap-2.5 text-sm">
+                  <span className="w-10 shrink-0 font-mono text-[11px] text-muted">{timeAgo(a.at)}</span>
+                  <span className="chip bg-accent/15 text-accent">{a.action}</span>
+                  <span className="flex-1 text-ink">{a.summary}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : (
             <p className="text-sm text-muted">No activity yet. Actions you approve will show up here.</p>
           )}
@@ -233,15 +231,16 @@ export default function DashboardPage() {
             Summarize everything that happened across your connected tools while you were away.
           </p>
         </div>
-        <button
-          disabled={!hasAnyConnection}
+        <Link
+          href="/catch-up"
+          aria-disabled={!hasAnyConnection}
           className={cn(
             "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium",
-            hasAnyConnection ? "bg-ink text-bg" : "cursor-not-allowed bg-surface-2 text-faint",
+            hasAnyConnection ? "bg-ink text-bg" : "pointer-events-none cursor-not-allowed bg-surface-2 text-faint",
           )}
         >
           Run catch-up <ArrowUpRight className="h-4 w-4" />
-        </button>
+        </Link>
       </BentoCard>
     </div>
   );
@@ -249,8 +248,8 @@ export default function DashboardPage() {
 
 function ErrorRow({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
-      <p className="text-sm text-rose-600 dark:text-rose-400">Couldn&apos;t load — {message}</p>
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-urgent/20 bg-urgent/5 p-3">
+      <p className="text-sm text-urgent">Couldn&apos;t load — {message}</p>
       <button
         onClick={onRetry}
         className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-bg"

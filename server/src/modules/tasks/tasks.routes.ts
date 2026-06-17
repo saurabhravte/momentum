@@ -10,3 +10,4 @@ tasksRouter.post("/", validateBody(CreateTaskDto), tasksController.createTask);
 tasksRouter.get("/stats", tasksController.taskStats);
 tasksRouter.get("/activity", tasksController.activity);
 tasksRouter.patch("/:id", validateBody(UpdateTaskDto), tasksController.updateTask);
+tasksRouter.delete("/:id", tasksController.deleteTask);

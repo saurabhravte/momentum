@@ -72,13 +72,13 @@ export function Navbar() {
           ) : (
             <>
               <Link
-                href="/login"
+                href="/login?mode=login"
                 className="hidden rounded-full px-3 py-1.5 text-sm text-muted hover:text-ink sm:block"
               >
                 Sign in
               </Link>
               <Link
-                href="/login"
+                href="/login?mode=register"
                 className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-bg transition-transform hover:scale-[1.02]"
               >
                 Get started

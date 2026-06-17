@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { FlowShowcase } from "./flow-showcase";
 import { StatusBadge } from "@/components/ui/badge";
+import { Logo } from "@/components/brand/logo";
 
 export function Hero() {
   return (
@@ -27,8 +28,10 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-muted">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+          <span className="inline-flex items-center gap-2 rounded-full border border-accent/60 bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">
+            <span className="grid h-4 w-4 place-items-center rounded-md bg-accent text-bg">
+              <Logo className="h-2.5 w-auto" />
+            </span>
             Welcome — your calmer workday starts here
           </span>
 

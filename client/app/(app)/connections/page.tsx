@@ -3,7 +3,20 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Check, ExternalLink, Lock, ArrowRight, AlertCircle, RotateCw } from "lucide-react";
+import {
+  CheckCircle,
+  ArrowSquareOut,
+  LockSimple,
+  ArrowRight,
+  WarningCircle,
+  ArrowsClockwise,
+  Plug,
+  EnvelopeSimple,
+  CalendarBlank,
+  SlackLogo,
+  GithubLogo,
+  type Icon,
+} from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
 import { CONNECT_STEPS } from "@/lib/connect-steps";
@@ -42,6 +55,14 @@ const KEY_PROVIDERS: Record<string, { label: string; hint: string; placeholder: 
 
 const ORDER = ["gmail", "googlecalendar", "slack", "github"] as const;
 
+/** Phosphor icon + brand tint per provider (replaces the old emoji glyphs). */
+const PROVIDER_ICON: Record<string, { Icon: Icon; color: string }> = {
+  gmail: { Icon: EnvelopeSimple, color: "234 67 53" },
+  googlecalendar: { Icon: CalendarBlank, color: "66 133 244" },
+  slack: { Icon: SlackLogo, color: "224 30 90" },
+  github: { Icon: GithubLogo, color: "40 40 46" },
+};
+
 function KeyModal({ provider, onClose, onDone }: { provider: string; onClose: () => void; onDone: () => void }) {
   const toast = useToast();
   const meta = KEY_PROVIDERS[provider]!;
@@ -77,7 +98,7 @@ function KeyModal({ provider, onClose, onDone }: { provider: string; onClose: ()
             rel="noreferrer"
             className="mt-1 inline-flex items-center gap-1 text-xs text-accent hover:underline"
           >
-            Where do I get this? <ExternalLink className="h-3 w-3" />
+            Where do I get this? <ArrowSquareOut className="h-3 w-3" />
           </a>
 
           <label className="mt-4 block text-xs text-muted">{meta.label}</label>
@@ -95,7 +116,7 @@ function KeyModal({ provider, onClose, onDone }: { provider: string; onClose: ()
           {errors.apiKey && <p className="mt-1 text-xs text-urgent">{errors.apiKey.message}</p>}
 
           <p className="mt-2 flex items-center gap-1.5 text-[11px] text-faint">
-            <Lock className="h-3 w-3" /> Encrypted at rest with the Corsair KEK envelope. Never logged.
+            <LockSimple className="h-3 w-3" /> Encrypted at rest with the Corsair KEK envelope. Never logged.
           </p>
 
           <DialogFooter className="mt-4">
@@ -216,7 +237,17 @@ function ConnectionsInner() {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-2 text-xl">{meta.icon}</span>
+                  {(() => {
+                    const pi = PROVIDER_ICON[key];
+                    return (
+                      <span
+                        className="grid h-10 w-10 place-items-center rounded-xl"
+                        style={{ background: `rgb(${pi.color} / 0.14)`, color: `rgb(${pi.color})` }}
+                      >
+                        <pi.Icon className="h-5 w-5" weight="fill" />
+                      </span>
+                    );
+                  })()}
                   <div>
                     <h3 className="font-display font-semibold leading-none">{meta.name}</h3>
                     <span className="mt-1 inline-block text-[11px] text-faint">Step {i + 1}</span>
@@ -224,11 +255,11 @@ function ConnectionsInner() {
                 </div>
                 {on ? (
                   <span className="chip bg-fyi/15 text-fyi">
-                    <Check className="h-3 w-3" /> connected
+                    <CheckCircle className="h-3.5 w-3.5" weight="fill" /> Connected
                   </span>
                 ) : isError ? (
                   <span className="chip bg-urgent/15 text-urgent">
-                    <AlertCircle className="h-3 w-3" /> needs attention
+                    <WarningCircle className="h-3 w-3" /> needs attention
                   </span>
                 ) : isConnecting ? (
                   <span className="chip bg-reply/15 text-reply">connecting…</span>
@@ -252,8 +283,14 @@ function ConnectionsInner() {
               })()}
 
               <p className="mt-2 flex items-center gap-1 text-[11px] text-faint">
-                <Lock className="h-3 w-3" /> {meta.scope}
+                <LockSimple className="h-3 w-3" /> {meta.scope}
               </p>
+              {on && conn?.connectedAt && (
+                <p className="mt-1 text-[11px] text-faint">
+                  Connected {new Date(conn.connectedAt).toLocaleDateString()}
+                  {conn.accountLabel ? ` · ${conn.accountLabel}` : ""}
+                </p>
+              )}
 
               <div className="mt-4 flex gap-2">
                 {on ? (
@@ -263,7 +300,7 @@ function ConnectionsInner() {
                       onClick={() => resync(key)}
                       disabled={busy === key}
                     >
-                      <RotateCw className={cn("h-4 w-4", busy === `resync:${key}` && "animate-spin")} />
+                      <ArrowsClockwise className={cn("h-4 w-4", busy === `resync:${key}` && "animate-spin")} />
                       {busy === `resync:${key}` ? "Syncing…" : "Resync"}
                     </button>
                     <button
@@ -280,6 +317,7 @@ function ConnectionsInner() {
                     onClick={() => connect(key)}
                     disabled={busy === key}
                   >
+                    {!busy && !isError && <Plug className="h-4 w-4" weight="bold" />}
                     {busy === key
                       ? "Redirecting…"
                       : isError
