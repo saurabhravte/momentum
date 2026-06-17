@@ -18,9 +18,9 @@
   /* RGB triplets — these are consumed as rgb(var(--token)). Never use oklch() here. */
   --muted: 120 116 108;
   --faint: 156 150 142;
-  /* Neon electric-blue accent for highlights, buttons, switches (was lime). */
+  /* Neon electric-blue accent for highlights, buttons, switches (no green). */
   --accent: 37 99 235;
-  /* Bright hover accent (cyan) — used for hover borders/sheens. */
+  /* Neon cyan hover accent — used for hover borders/sheens. */
   --hover: 6 182 212;
   --accent-soft: 219 234 254;
 
@@ -42,7 +42,7 @@
   --urgent: 225 29 72;
   --reply: 217 119 6;
   --waiting: 8 145 178;
-  --fyi: 5 150 105;
+  --fyi: 6 182 212;
   --news: 100 116 139;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -85,7 +85,7 @@
   /* RGB triplets — consumed as rgb(var(--token)). Never oklch() here. */
   --muted: 150 150 160;
   --faint: 102 102 116;
-  /* Neon electric-blue accent that reads on near-black (was lime). */
+  /* Neon electric-blue accent that reads on near-black (no green). */
   --accent: 56 189 248;
   --hover: 34 211 238;
   --accent-soft: 12 41 74;
@@ -108,7 +108,7 @@
   --urgent: 251 113 133;
   --reply: 251 191 36;
   --waiting: 56 189 248;
-  --fyi: 52 211 153;
+  --fyi: 34 211 238;
   --news: 148 163 184;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

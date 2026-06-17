@@ -83,9 +83,7 @@ function ToolNode({ data }: NodeProps) {
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-medium">{meta.name}</span>
-        <span
-          className={cn("inline-flex items-center gap-1 text-[11px]", connected ? "text-emerald-500" : "text-faint")}
-        >
+        <span className={cn("inline-flex items-center gap-1 text-[11px]", connected ? "text-fyi" : "text-faint")}>
           {connected ? (
             <>
               <Check className="h-3 w-3" /> Connected

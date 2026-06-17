@@ -104,7 +104,7 @@ export function Pricing() {
               )}
               <span className="relative z-10">{c}</span>
               {c === "annual" && (
-                <span className="relative z-10 ml-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-500">
+                <span className="relative z-10 ml-1 rounded-full bg-fyi/15 px-1.5 py-0.5 text-[10px] font-semibold text-fyi">
                   −20%
                 </span>
               )}
@@ -163,7 +163,7 @@ export function Pricing() {
               <ul className="mt-6 flex-1 space-y-2.5">
                 {p.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-muted">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-fyi" />
                     {f}
                   </li>
                 ))}

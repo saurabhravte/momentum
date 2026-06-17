@@ -90,7 +90,7 @@ export default function DashboardPage() {
     return "off";
   };
   const STATUS_COLOR: Record<"connected" | "error" | "off", string> = {
-    connected: "34 197 94", // bright green
+    connected: "var(--fyi)", // cyan positive (no green)
     error: "var(--urgent)",
     off: "var(--faint)",
   };
@@ -143,12 +143,7 @@ export default function DashboardPage() {
 
       {/* Stat row — derived from real data */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat
-          icon={Plug}
-          label="Connected tools"
-          value={connectedCount}
-          loading={conns.loading}
-        />
+        <Stat icon={Plug} label="Connected tools" value={connectedCount} loading={conns.loading} />
         <Stat icon={Inbox} label="Unread" value={unread} loading={inbox.loading} />
         <Stat icon={CalendarClock} label="Meetings today" value={meetingsToday} loading={events.loading} />
         <Stat icon={CheckSquare} label="Open tasks" value={openTasks} loading={tasks.loading} />
@@ -191,9 +186,7 @@ export default function DashboardPage() {
                         onClick={() => toggleTool(t.key, isOn)}
                         className={cn(
                           "rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
-                          isOn
-                            ? "border border-line text-muted hover:text-ink"
-                            : "bg-accent text-bg hover:opacity-90",
+                          isOn ? "border border-line text-muted hover:text-ink" : "bg-accent text-bg hover:opacity-90",
                         )}
                       >
                         {conns.loading ? "…" : isOn ? "Resync" : "Connect"}
