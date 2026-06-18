@@ -4,7 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { env } from "./common/config/env";
 import { errorHandler } from "./common/middleware/error.middleware";
-import { apiLimiter } from "./common/middleware/rateLimit.middleware";
+import { apiLimiter, authLimiter } from "./common/middleware/rateLimit.middleware";
 import { requireAuth } from "./modules/auth/auth.middleware";
 import { authRouter } from "./modules/auth/auth.routes";
 import { pricingRouter } from "./modules/pricing/pricing.routes";
@@ -47,7 +47,7 @@ export function createApp() {
   const api = express.Router();
   // Webhooks: raw body + signature auth (NOT session auth), mounted first.
   api.use("/webhooks", webhooksRouter);
-  api.use("/auth", authRouter);
+  api.use("/auth", authLimiter, authRouter);
   api.use("/pricing", pricingRouter);
   // Everything below requires a session and is rate-limited per user.
   api.use(requireAuth, apiLimiter);

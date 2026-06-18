@@ -18,7 +18,7 @@ import type {
  * in dev; in prod, put both behind the same origin (reverse proxy) or set
  * NEXT_PUBLIC_API_URL. Cookies always sent (httpOnly session).
  */
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+const BASE = "";
 
 export class ApiError extends Error {
   constructor(
