@@ -4,7 +4,7 @@ packages:
   - "packages/*"
 
 onlyBuiltDependencies:
+  - argon2
   - sharp
   - esbuild
-  - argon2
   - unrs-resolver
