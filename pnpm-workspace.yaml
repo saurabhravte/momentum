@@ -2,8 +2,8 @@ packages:
   - "client"
   - "server"
   - "packages/*"
-onlyBuiltDependencies:
-  - argon2
-  - esbuild
-  - sharp
-  - unrs-resolver
+allowBuilds:
+  argon2: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
