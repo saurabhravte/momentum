@@ -2,3 +2,9 @@ packages:
   - "client"
   - "server"
   - "packages/*"
+
+onlyBuiltDependencies:
+  - sharp
+  - esbuild
+  - argon2
+  - unrs-resolver
