@@ -3,7 +3,5 @@ packages:
   - "server"
   - "packages/*"
 allowBuilds:
-  argon2: false
-  esbuild: false
-  sharp: true
-  unrs-resolver: true
+  sharp: set this to true or false
+  unrs-resolver: set this to true or false
