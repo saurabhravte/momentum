@@ -19,14 +19,7 @@
     "dev:client": "pnpm --filter @momentum/client dev"
   },
   "engines": {
-    "node": ">=20"
-  },
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.5.0",
-      "onFail": "download"
-    }
+    "node": "22.x"
   },
   "devDependencies": {
     "prettier": "^3.8.4",
