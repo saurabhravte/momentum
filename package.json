@@ -24,13 +24,5 @@
   "devDependencies": {
     "prettier": "^3.8.4",
     "typescript": "^6.0.3"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "argon2",
-      "esbuild",
-      "sharp",
-      "unrs-resolver"
-    ]
   }
 }
