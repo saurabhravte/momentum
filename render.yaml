@@ -1,0 +1,68 @@
+# =============================================================================
+# Render Blueprint for Momentum's backend API.
+# Place this file at the REPO ROOT as `render.yaml`, commit, and push.
+# Then: Render dashboard -> New -> Blueprint -> pick this repo.
+# Render reads this file and pre-fills everything below; it will only PROMPT
+# you for the values marked `sync: false` (your secrets + URLs).
+#
+# Note: the database is intentionally NOT defined here. Render's free Postgres
+# is deleted after 30 days, so Momentum uses Neon instead (free, never expires,
+# pgvector). You paste the Neon connection string when prompted for DATABASE_URL.
+# =============================================================================
+
+services:
+  - type: web
+    name: momentum-api
+    runtime: node
+    plan: free
+    region: singapore # closest free region to India; change if you like
+    rootDir: . # monorepo root
+    healthCheckPath: /healthz # Render waits for this to return 200 before going live
+    autoDeploy: true # redeploy on every push to the default branch
+
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @momentum/server... build
+    startCommand: pnpm --filter @momentum/server start
+
+    envVars:
+      # --- fixed -------------------------------------------------------------
+      - key: NODE_ENV
+        value: production
+
+      # --- auto-generated once by Render (you never see or set these) --------
+      - key: SESSION_SECRET
+        generateValue: true # secure 256-bit value, generated on first deploy
+      - key: CORSAIR_KEK
+        generateValue: true # encrypts stored OAuth tokens — generated once, kept stable
+
+      # --- Render will PROMPT you for these on deploy (sync: false) -----------
+      - key: DATABASE_URL
+        sync: false # your Neon pooled string, ending in ?sslmode=require
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false # optional — leave blank to run without live AI
+
+      # --- also prompted; set to your Vercel URL (see note below) ------------
+      - key: WEB_ORIGIN
+        sync: false # https://<your-app>.vercel.app
+      - key: API_ORIGIN
+        sync: false # https://<your-app>.vercel.app
+      - key: GOOGLE_REDIRECT_URI
+        sync: false # https://<your-app>.vercel.app/api/auth/google/callback
+
+
+# -----------------------------------------------------------------------------
+# Chicken-and-egg with the three URL vars:
+#   You won't have your Vercel URL yet on the very first deploy. Two options:
+#   (a) Enter a placeholder (e.g. https://placeholder.vercel.app) now, deploy
+#       Vercel, then come back to Render -> Environment, paste the real URL, and
+#       it auto-redeploys. (matches Phase 6 of the manual guide)
+#   (b) Deploy Vercel FIRST to learn the URL, then run this Blueprint and paste
+#       the real values straight away.
+#
+# Requires the one-line port fix in server/src/common/config/env.ts:
+#   API_PORT: z.coerce.number().default(Number(process.env.PORT) || 4000),
+# so the server binds to the port Render injects.
+# -----------------------------------------------------------------------------
