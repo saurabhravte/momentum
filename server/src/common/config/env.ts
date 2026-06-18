@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const Env = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  API_PORT: z.coerce.number().default(4000),
+  API_PORT: z.coerce.number().default(Number(process.env.PORT) || 4000),
   WEB_ORIGIN: z.string().url().default("http://localhost:3000"),
   API_ORIGIN: z.string().url().default("http://localhost:4000"),
   DATABASE_URL: z.string().min(1),
